@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skill Assessment & Learning Plan Agent</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>AI Skill Assessment & Personalised Learning Plan Agent</h1>
+      <p class="subtitle">
+        Paste a job description + upload candidate resume PDF, run a conversational assessment, and generate a focused learning plan.
+      </p>
+
+      <section class="card">
+        <h2>Step 1: Inputs</h2>
+        <div id="competitorInfo"></div>
+        <label for="jdText">Job Description</label>
+        <textarea id="jdText" rows="8" placeholder="Paste JD here..."></textarea>
+
+        <label for="resumePdf">Candidate Resume (PDF)</label>
+        <input id="resumePdf" type="file" accept="application/pdf" />
+        <p id="resumeStatus"></p>
+        <textarea id="resumeTextPreview" rows="6" placeholder="Extracted resume text preview..." readonly></textarea>
+
+        <div class="row">
+          <button id="useSampleBtn" type="button">Use Sample Data</button>
+          <button id="startAssessmentBtn" type="button">Start Assessment</button>
+        </div>
+      </section>
+
+      <section class="card hidden" id="conversationSection">
+        <h2>Step 2: Conversational Skill Assessment</h2>
+        <p id="questionCounter"></p>
+        <div id="questionBox"></div>
+        <div class="row">
+          <button id="prevSkillBtn" type="button">Previous Skill</button>
+          <button id="nextSkillBtn" type="button">Next Skill</button>
+          <button id="submitAssessmentBtn" type="button">Generate Report</button>
+        </div>
+      </section>
+
+      <section class="card hidden" id="resultSection">
+        <h2>Step 3: Assessment Report</h2>
+        <div id="resultContent"></div>
+      </section>
+    </main>
+
+    <script src="./main.js"></script>
+  </body>
+</html>

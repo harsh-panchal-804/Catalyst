@@ -1,0 +1,27 @@
+{
+  "name": "catalyst-skill-assessment-agent",
+  "version": "1.0.0",
+  "description": "AI-powered skill assessment and personalized learning plan agent prototype",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "convex:dev": "npx convex dev",
+    "convex:deploy": "npx convex deploy"
+  },
+  "keywords": [
+    "skill-assessment",
+    "learning-plan",
+    "hackathon"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@clerk/backend": "^3.4.1",
+    "convex": "^1.36.1",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "multer": "^2.1.1",
+    "pdf-parse": "^1.1.1"
+  }
+}

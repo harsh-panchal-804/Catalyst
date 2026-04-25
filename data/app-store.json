@@ -1,0 +1,194 @@
+{
+  "users": [
+    {
+      "id": "usr_eb9d998b-bac9-4d71-a2c7-d87cc35205c4",
+      "email": "harshpanchal522@gmail.com",
+      "name": "Harsh Panchal",
+      "role": "admin",
+      "createdAt": 1777114731131
+    },
+    {
+      "id": "usr_1a0a5e94-ce6f-4866-a5f2-b488b9190c6f",
+      "email": "harshpanchal@teamdeccan.com",
+      "name": "Harsh Panchal",
+      "role": "user",
+      "createdAt": 1777115266848
+    },
+    {
+      "id": "usr_0180f4f1-3af8-438e-aa24-4f04c765b4c4",
+      "email": "harshpanchal25052004@gmail.com",
+      "name": "Harsh Panchal",
+      "role": "user",
+      "createdAt": 1777115480621
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job_b7087986-36fc-49aa-9f3f-797e7fdca302",
+      "jobId": "ABCD",
+      "title": "Backend Development",
+      "description": "We’re seeking someone to join our CDRR Technology team as a Backend Developer, in Cyber to analyze user requirements and business objectives, recommending changes to existing Java and Python based applications, among other duties.\n\nIn the Technology division, we leverage innovation to build the connections and capabilities that power our Firm, enabling our clients and colleagues to redefine markets and shape the future of our communities.\n\nThis is Associate position that develops and maintains software solutions that support business needs.\n\nSince 1935, Morgan Stanley is known as a global leader in financial services, always evolving and innovating to better serve our clients and our communities in more than 40 countries around the world.\n\nWhat You’ll Do In The Role\n\nAnalyze communicated requirements and come up with tech design.\nResearch, develop tech solutions based on communicated requirements and tech design.\nEnhance existing Security Development security solutions prioritized based on client feedback, issues on PROD, technical discussion etc.\nCreate automated testing for the solutions developed.\nCreate documentation/support procedures and assist operation/SRE team for operational work.\nEnforce software SLDC in the development circle.\nSupport continuous improvement by investigating alternatives and technologies and presenting these for architectural review.\n\nWhat You’ll Bring To The Role\n\nAt least 4 years' relevant experience would generally be expected to find the skills required for this role.\nStrong knowledge of core Java/J2EE technologies.\nStrong knowledge of Python.\nExperience of using open-source frameworks like Spring Framework, FLASK.\nFamiliar with test driven development methodology.\nHands-on experience with CI/CD tools like (GIT, Jenkins, Team City)\nExperience of using relational database, like JDBC, SQL, Store Procedure.\nExperience of using scripting language. e.g. Shell, Regular expression\nExperience with front end technologies like HTML, JavaScript, CSS etc.\nExperience with Agile methodology, e.g. spring planning, daily Scrum, retrospective etc.\nBasic knowledge of using Linux.\nBasic networking knowledge,\nBasic knowledge of information security, such as IAM, DLP, Crypto etc.\nAwareness of Docker, Ansible, Kubernetes, Splunk, Public Cloud management\nExcellent verbal and written communication skills coupled with a collaborative approach.\n\nWhat You Can Expect From Morgan Stanley\n\nAt Morgan Stanley, we raise, manage and allocate capital for our clients – helping them reach their goals. We do it in a way that’s differentiated – and we’ve done that for 90 years. Our values - putting clients first, doing the right thing, leading with exceptional ideas, committing to diversity and inclusion, and giving back - aren’t just beliefs, they guide the decisions we make every day to do what's best for our clients, communities and more than 80,000 employees in 1,200 offices across 42 countries. At Morgan Stanley, you’ll find an opportunity to work alongside the best and the brightest, in an environment where you are supported and empowered. Our teams are relentless collaborators and creative thinkers, fueled by their diverse backgrounds and experiences. We are proud to support our employees and their families at every point along their work-life journey, offering some of the most attractive and comprehensive employee benefits and perks in the industry. There’s also ample opportunity to move about the business for those who show passion and grit in their work.\n\nTo learn more about our offices across the globe, please copy and paste https://www.morganstanley.com/about-us/global-offices into your browser.\n\nMorgan Stanley is an equal opportunity employer committed to building and maintaining a workforce that is diverse in experience and background. Our recruiting efforts reflect our strong commitment to a culture of inclusion, where individuals are hired, developed, and advanced based on their skills and talents.\n\nOur workforce reflects a broad cross-section of the global communities in which we operate, bringing a variety of backgrounds, talents, perspectives, and experiences.\n\nFor more information, please visit: https://www.morganstanley.com/people-opportunities/eeo.",
+      "requiredSkills": [
+        "Python",
+        "Java",
+        "Grafana",
+        "SQL",
+        "FastAPI"
+      ],
+      "createdBy": "harshpanchal522@gmail.com",
+      "createdAt": 1777115239354,
+      "status": "open"
+    }
+  ],
+  "applications": [
+    {
+      "id": "app_5363575a-3c75-4c73-a733-24363b63c6d1",
+      "jobId": "job_b7087986-36fc-49aa-9f3f-797e7fdca302",
+      "userId": "usr_1a0a5e94-ce6f-4866-a5f2-b488b9190c6f",
+      "resumeFileName": "resume.pdf",
+      "resumeTextSnapshot": "Harsh Panchal\nHyderabad, India\n+91-9875078850\nEmailGitHubLinkedInLeetCodeCodeForcesPortfolio\nEDUCATION\nPandit Deendayal Energy UniversityAugust 2022 – May 2026\nB.Tech in Computer Science and Engineering(CGPA: 9.34)Gandhinagar, India\nEXPERIENCE\nDeccan AIDecember 2025 – Present\nSoftware Development InternHyderabad, India\n•\nArchitected anAI agent benchmarking platformforTerminal-Bench-style CLI tasks, enablingasynchronous\nevaluationofClaude, GPT, and Geminion terminal workflows.\n•\nDesigned adistributed master-worker architecturewith anEC2 orchestratorandAWS Fargate workers,\nsupporting1000+ concurrent users.\n•\nOrchestrated amessage queue-driven pipelineusingAmazon SQS, enablingfault-tolerant, retry-safeexecution\nand decoupled components.\n•\nEngineeredglobal SHA-256 task deduplicationandrun-once evaluation locking, preventing redundant runs and\nreducing LLM compute cost.\n•\nScaled workloads viaAWS ECSwith queue-depth autoscaling, handling80 RPS pollingand20 RPSadditional\ntraffic without blocking UI.\n•\nLeveraged theHarbor frameworkforDocker-based evaluation, utilizing itssandboxed executionfor isolated\nCLI task runs.\n•\nProvisioned infrastructure usingTerraform (IaC), managing ECS services, SQS queues, and compute resources for\nscalable deployments.\nDSA & ACHIEVEMENTS\n•\nSolved1250+algorithmic problems acrossCodeForces,CodeChef, andLeetCode.\n•\nRatedSpecialistonCodeforcesandKnight (Top 3%)onLeetCode— peak contest rank366/30,717.\n•\nAwardedUniversity Merit Scholarship, ranked among thetop 15 out of 600students.\n•\nSecuredAIR 5078inGATE DA 2026.\nPROJECTS\nSync Pad\nW\n|React.js, TypeScript, Liveblocks, Clerk, Convex, Shadcn UI|Live\nW\n2025\n•\nBuilt areal-time collaborative editorusing React.js, TypeScript, and Liveblocks, enablingsub-100 ms latency\nmulti-user editing withCRDT-based conflict resolution for1k+ concurrent sessions.\n•\nEngineered arich-text editing pipelinesupporting structured content (tables, images, lists), handling100+\nedits/secwith efficient state updates.\n•\nImplementedsecure multi-tenant access controlusing Clerk withOAuth, SSO, and 2FA, managing1000+\nauthenticated userswith role-based permissions.\n•\nIntegratedConvex for real-time persistence, enablingauto-save within 200 ms, version history, and consistent\nstate across concurrent edits.\nLoad Balancer in C\nW\n|C, POSIX, Linux, TCP/IP, OpenSSL, AWS EC2|Live\nW\n2025\n•\nBuilt amultithreaded HTTPS load balancer and reverse proxy in Cusing TCP/IP, POSIX sockets, pthreads,\nand OpenSSL to distribute web traffic.\n•\nDesignedround-robin schedulingwith per-requestreal-time DNS resolutionandzero-copy kernel-leveldata\ntransfers, supporting10+ MIMEtypes.\n•\nImplemented concurrency usingpthreadsandNagle’s optimizationto reduce small packet overhead and improve\nTCP efficiency.\n•\nHandled10k+ clients/secusingApacheBench; deployed onAWS EC2withCI/CDvia webhooks.\nTECHNICAL SKILLS\nLanguages:TypeScript, JavaScript, SQL, HTML, HTML5, CSS, CSS3, SCSS\nFrontend:React.js, Next.js, Tailwind CSS, Bootstrap, Material UI, Redux, Zustand, Axios\nBackend:Node.js, Express.js, FastAPI, Flask\nDatabases:PostgreSQL, MySQL, MongoDB, Convex, Redis\nCloud & DevOps:AWS (EC2, S3, Lambda), GCP, Docker, Kubernetes, Jenkins, Grafana, Git",
+      "appliedAt": 1777115284271,
+      "assessmentStatus": "in_progress"
+    },
+    {
+      "id": "app_761d1d92-6b30-4d28-96e1-50e3ae66397b",
+      "jobId": "job_b7087986-36fc-49aa-9f3f-797e7fdca302",
+      "userId": "usr_0180f4f1-3af8-438e-aa24-4f04c765b4c4",
+      "resumeFileName": "resume.pdf",
+      "resumeTextSnapshot": "Harsh Panchal\nHyderabad, India\n+91-9875078850\nEmailGitHubLinkedInLeetCodeCodeForcesPortfolio\nEDUCATION\nPandit Deendayal Energy UniversityAugust 2022 – May 2026\nB.Tech in Computer Science and Engineering(CGPA: 9.34)Gandhinagar, India\nEXPERIENCE\nDeccan AIDecember 2025 – Present\nSoftware Development InternHyderabad, India\n•\nArchitected anAI agent benchmarking platformforTerminal-Bench-style CLI tasks, enablingasynchronous\nevaluationofClaude, GPT, and Geminion terminal workflows.\n•\nDesigned adistributed master-worker architecturewith anEC2 orchestratorandAWS Fargate workers,\nsupporting1000+ concurrent users.\n•\nOrchestrated amessage queue-driven pipelineusingAmazon SQS, enablingfault-tolerant, retry-safeexecution\nand decoupled components.\n•\nEngineeredglobal SHA-256 task deduplicationandrun-once evaluation locking, preventing redundant runs and\nreducing LLM compute cost.\n•\nScaled workloads viaAWS ECSwith queue-depth autoscaling, handling80 RPS pollingand20 RPSadditional\ntraffic without blocking UI.\n•\nLeveraged theHarbor frameworkforDocker-based evaluation, utilizing itssandboxed executionfor isolated\nCLI task runs.\n•\nProvisioned infrastructure usingTerraform (IaC), managing ECS services, SQS queues, and compute resources for\nscalable deployments.\nDSA & ACHIEVEMENTS\n•\nSolved1250+algorithmic problems acrossCodeForces,CodeChef, andLeetCode.\n•\nRatedSpecialistonCodeforcesandKnight (Top 3%)onLeetCode— peak contest rank366/30,717.\n•\nAwardedUniversity Merit Scholarship, ranked among thetop 15 out of 600students.\n•\nSecuredAIR 5078inGATE DA 2026.\nPROJECTS\nSync Pad\nW\n|React.js, TypeScript, Liveblocks, Clerk, Convex, Shadcn UI|Live\nW\n2025\n•\nBuilt areal-time collaborative editorusing React.js, TypeScript, and Liveblocks, enablingsub-100 ms latency\nmulti-user editing withCRDT-based conflict resolution for1k+ concurrent sessions.\n•\nEngineered arich-text editing pipelinesupporting structured content (tables, images, lists), handling100+\nedits/secwith efficient state updates.\n•\nImplementedsecure multi-tenant access controlusing Clerk withOAuth, SSO, and 2FA, managing1000+\nauthenticated userswith role-based permissions.\n•\nIntegratedConvex for real-time persistence, enablingauto-save within 200 ms, version history, and consistent\nstate across concurrent edits.\nLoad Balancer in C\nW\n|C, POSIX, Linux, TCP/IP, OpenSSL, AWS EC2|Live\nW\n2025\n•\nBuilt amultithreaded HTTPS load balancer and reverse proxy in Cusing TCP/IP, POSIX sockets, pthreads,\nand OpenSSL to distribute web traffic.\n•\nDesignedround-robin schedulingwith per-requestreal-time DNS resolutionandzero-copy kernel-leveldata\ntransfers, supporting10+ MIMEtypes.\n•\nImplemented concurrency usingpthreadsandNagle’s optimizationto reduce small packet overhead and improve\nTCP efficiency.\n•\nHandled10k+ clients/secusingApacheBench; deployed onAWS EC2withCI/CDvia webhooks.\nTECHNICAL SKILLS\nLanguages:TypeScript, JavaScript, SQL, HTML, HTML5, CSS, CSS3, SCSS\nFrontend:React.js, Next.js, Tailwind CSS, Bootstrap, Material UI, Redux, Zustand, Axios\nBackend:Node.js, Express.js, FastAPI, Flask\nDatabases:PostgreSQL, MySQL, MongoDB, Convex, Redis\nCloud & DevOps:AWS (EC2, S3, Lambda), GCP, Docker, Kubernetes, Jenkins, Grafana, Git",
+      "appliedAt": 1777115495012,
+      "assessmentStatus": "in_progress"
+    }
+  ],
+  "assessmentSessions": [
+    {
+      "id": "ses_93c6c419-abde-4d18-a96a-5ece31bf6ea1",
+      "applicationId": "app_5363575a-3c75-4c73-a733-24363b63c6d1",
+      "startedAt": 1777115287798,
+      "lastQuestionAt": 1777115287798,
+      "status": "in_progress",
+      "structuredAnswers": {}
+    },
+    {
+      "id": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "applicationId": "app_761d1d92-6b30-4d28-96e1-50e3ae66397b",
+      "startedAt": 1777115496705,
+      "lastQuestionAt": 1777119144605,
+      "status": "in_progress",
+      "structuredAnswers": {
+        "python": {
+          "confidence": null,
+          "years": null,
+          "projectCount": null,
+          "depth": null,
+          "evidence": "improved efficiency",
+          "impact": "improved efficiency"
+        },
+        "java": {
+          "confidence": null,
+          "years": null,
+          "projectCount": null,
+          "depth": null,
+          "evidence": null,
+          "impact": null
+        },
+        "grafana": {
+          "confidence": null,
+          "years": null,
+          "projectCount": null,
+          "depth": null,
+          "evidence": null,
+          "impact": null
+        },
+        "sql": {
+          "confidence": null,
+          "years": null,
+          "projectCount": null,
+          "depth": null,
+          "evidence": null,
+          "impact": null
+        },
+        "fastapi": {
+          "confidence": null,
+          "years": null,
+          "projectCount": null,
+          "depth": null,
+          "evidence": null,
+          "impact": null
+        }
+      }
+    }
+  ],
+  "assessmentMessages": [
+    {
+      "id": "msg_a0e5e7ee-a174-4fca-9d33-5d8c0f6191ae",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "role": "assistant",
+      "text": "Based on your resume, you have experience with Python and other technologies. Could you tell me about a specific project where you used Python, and what its impact was on the team or organization?",
+      "createdAt": 1777116547964
+    },
+    {
+      "id": "msg_7edc9c7f-05b0-47ac-a703-2fbff7f287e6",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "role": "user",
+      "text": "improved efficiency",
+      "createdAt": 1777116563532
+    },
+    {
+      "id": "msg_da68d50d-231b-4e9e-9258-32a4464e74c5",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "role": "assistant",
+      "text": "That's great to hear about the impact. Could you provide more details about the project where you improved efficiency using Python? What specific tasks did you perform, and how did you measure the improvement in efficiency?",
+      "createdAt": 1777116565305
+    },
+    {
+      "id": "msg_29405b05-be36-4756-928c-05c7b66180bd",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "skill": "Python",
+      "role": "assistant",
+      "text": "Can you provide an example of a Python project you have worked on, and what was the impact of your contribution to it?",
+      "createdAt": 1777118136607
+    },
+    {
+      "id": "msg_44856a63-9b75-4d31-980e-a99252e2a45d",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "skill": "Java",
+      "role": "user",
+      "text": "hi",
+      "createdAt": 1777118197715
+    },
+    {
+      "id": "msg_25a551e0-36bd-41ac-8a1a-42ae4b722b0c",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "skill": "Java",
+      "role": "assistant",
+      "text": "Based on your resume, you have experience with Python in your projects. Could you provide more details on how you used Python in your projects, particularly in the context of backend development or with open-source frameworks like Flask or Django?",
+      "createdAt": 1777118200567
+    },
+    {
+      "id": "msg_7900cce3-664f-47b4-b901-a2a821eb791f",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "skill": "Grafana",
+      "role": "assistant",
+      "text": "Can you describe a project where you used Grafana to monitor or visualize data, and what specific metrics or KPIs did you track using Grafana?",
+      "createdAt": 1777119132059
+    },
+    {
+      "id": "msg_ab5e9610-1a52-45f6-8e7f-74132c20a3eb",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "skill": "SQL",
+      "role": "assistant",
+      "text": "Can you provide an example of a project where you had to write and optimize SQL queries to improve the performance of a database system?",
+      "createdAt": 1777119137421
+    },
+    {
+      "id": "msg_f238975d-5aff-46db-977c-003e89d26e92",
+      "sessionId": "ses_6e0dd6a4-3a9e-42cd-9442-f006477833bd",
+      "skill": "FastAPI",
+      "role": "assistant",
+      "text": "Can you provide an example of a project where you used FastAPI to develop a backend service? What were the key features or challenges you faced in that project?",
+      "createdAt": 1777119144605
+    }
+  ],
+  "assessmentResults": []
+}

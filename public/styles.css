@@ -1,0 +1,134 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  color: #1d2735;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+h1 {
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: #415268;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+label {
+  display: block;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+textarea,
+input[type="file"],
+input[type="number"],
+input[type="text"] {
+  width: 100%;
+  margin-top: 6px;
+  margin-bottom: 8px;
+  padding: 10px;
+  border: 1px solid #ced8e5;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+#resumeStatus {
+  margin: 8px 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+button {
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hidden {
+  display: none;
+}
+
+.skill-card {
+  border: 1px solid #d8e2f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.skill-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.skill-table th,
+.skill-table td {
+  border: 1px solid #e3eaf3;
+  padding: 8px;
+  text-align: left;
+}
+
+.pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  margin-right: 6px;
+  background: #eef2ff;
+  color: #1f3a8a;
+}
+
+.resource-list li {
+  margin-bottom: 6px;
+}
+
+#competitorInfo {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #d8e2f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+#competitorInfo ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
