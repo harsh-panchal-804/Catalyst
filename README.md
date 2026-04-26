@@ -147,6 +147,34 @@ flowchart LR
 
 ---
 
+## Scoring Logic
+
+Candidates are evaluated in three layers — first against the JD on paper, then per question, then rolled up per skill into a final score.
+
+**1. Fit score (resume ↔ JD), `convex/resume.ts`**
+
+Computed at apply-time (and as a pre-apply preview) by blending two signals:
+
+- `keywordOverlapPct` — case-insensitive overlap between the resume's extracted skills and the job's required skills.
+- `semanticScore` — an LLM holistic 0–100 match that also returns `matchedSkills` / `missingSkills`.
+- Final: `fitScore = round(0.45 × keywordOverlapPct + 0.55 × semanticScore)`.
+
+**2. Per-question score (during assessment), `convex/assessments.ts`**
+
+Each of the 7 questions per skill (1 descriptive icebreaker + 1 coding + 3 MCQ + 2 descriptive) is graded by the LLM on a 0–100 scale. The grading rubric considers:
+
+- Correctness against the prompt, edge-case handling, time/space complexity, and idiomatic style for coding answers.
+- Concept accuracy and depth for descriptive answers; exact match for MCQs.
+- Per-question timing (`startedAt` → `submittedAt`) as a **weak** signal — slow but strong answers aren't penalized; very fast + very weak answers slightly reduce confidence.
+
+**3. Per-skill score and final score**
+
+- After the 7th question for a skill, the LLM emits a holistic `skillScore` (0–100) across the whole skill, plus a conclusion and a curated learning plan.
+- Once every required skill is `completed`, the application's `finalScore` is the **arithmetic mean** of all per-skill `skillScore`s.
+- That score is mapped to a recommendation band: `≥ 80` → **Strong match**, `≥ 65` → **Potential match**, else **Needs upskilling**.
+
+---
+
 ## Folder Structure
 
 ```
