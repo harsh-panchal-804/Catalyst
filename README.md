@@ -18,6 +18,7 @@ A shared demo admin account is already provisioned, so anyone can poke around th
 |---|---|
 | Email | `demo.admin+clerk_test@example.com` |
 | Password | `catalyst@deccan` |
+| OTP (If Prompted) |  `424242` |
 
 **Steps**
 
