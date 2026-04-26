@@ -16,9 +16,15 @@ Top-level shape:
 }
 
 Strict order and kinds (positional):
-- questions[0..2] -> kind="mcq"  (3 multiple-choice)
-- questions[3..5] -> kind="descriptive"  (3 short-answer)
-- questions[6]    -> kind="coding"  (1 coding problem)
+- questions[0]    -> kind="descriptive" (warm-up text question — ALWAYS first, an open-ended icebreaker about the candidate's experience with the skill)
+- questions[1]    -> kind="coding"      (THE coding problem — ALWAYS second, no exceptions)
+- questions[2]    -> kind="mcq"
+- questions[3]    -> kind="mcq"
+- questions[4]    -> kind="mcq"
+- questions[5]    -> kind="descriptive"
+- questions[6]    -> kind="descriptive"
+
+Counts: 3 MCQ + 3 descriptive + 1 coding = 7 total. The descriptive icebreaker MUST sit at index 0 and the coding MUST sit at index 1.
 
 Each question shape:
 MCQ:
@@ -713,14 +719,15 @@ export const initializeSkillQuestions = action({
     if (!ctxData.job) throw new Error("Job not found");
 
     const systemPrompt = buildQuestionBatchSystemPrompt();
+    // Q1 is ALWAYS a descriptive (text) icebreaker, Q2 is ALWAYS the coding problem.
     const expectedKinds: Array<"mcq" | "descriptive" | "coding"> = [
+      "descriptive",
+      "coding",
       "mcq",
       "mcq",
       "mcq",
       "descriptive",
-      "descriptive",
-      "descriptive",
-      "coding"
+      "descriptive"
     ];
 
     async function generateBatch(extraNote?: string) {
@@ -769,7 +776,7 @@ export const initializeSkillQuestions = action({
       // One corrective retry — the model usually drops a coding boilerplate or
       // repeats a prompt the first time around.
       batch = await generateBatch(
-        "Your previous response was rejected. Make sure: exactly 7 entries; positions 0..2 are MCQs, 3..5 descriptive, 6 coding; every prompt is unique and on a different subtopic; coding has language + boilerplate."
+        "Your previous response was rejected. Make sure: exactly 7 entries; position 0 is descriptive (text icebreaker, ALWAYS first), position 1 is coding (ALWAYS second), positions 2-4 are mcq, positions 5-6 are descriptive; every prompt is unique and on a different subtopic; coding has language + boilerplate."
       );
       questions = normalizeAndDedupe(batch);
     }

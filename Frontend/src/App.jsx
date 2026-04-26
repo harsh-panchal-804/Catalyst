@@ -119,6 +119,72 @@ function formatDuration(seconds) {
   const s = safe % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
+
+function scoreTone(score) {
+  if (typeof score !== "number") return "text-muted-foreground";
+  if (score >= 80) return "text-emerald-500";
+  if (score >= 60) return "text-amber-500";
+  return "text-rose-500";
+}
+
+function PastTurn({ question, index }) {
+  if (!question) return null;
+  const kindLabel =
+    question.kind === "mcq"
+      ? "MCQ"
+      : question.kind === "coding"
+        ? `Coding · ${question.language || "code"}`
+        : "Open-ended";
+
+  let userAnswerNode;
+  if (question.kind === "mcq") {
+    const opt =
+      typeof question.selectedOptionIndex === "number" &&
+      Array.isArray(question.options)
+        ? question.options[question.selectedOptionIndex] ?? "—"
+        : "—";
+    userAnswerNode = <p className="whitespace-pre-wrap">{opt}</p>;
+  } else if (question.kind === "coding") {
+    userAnswerNode = (
+      <Markdown>
+        {`\`\`\`${question.language || ""}\n${
+          question.answerText || "(no submission)"
+        }\n\`\`\``}
+      </Markdown>
+    );
+  } else {
+    userAnswerNode = <Markdown>{question.answerText || "—"}</Markdown>;
+  }
+
+  return (
+    <>
+      <Message role="assistant">
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide opacity-70">
+            {kindLabel} · Question {index + 1} of 7
+          </p>
+          <Markdown>{question.prompt}</Markdown>
+        </div>
+      </Message>
+      <Message role="user">{userAnswerNode}</Message>
+      {typeof question.score === "number" ? (
+        <Message role="assistant">
+          <div className="space-y-1">
+            <p>
+              <span className="text-xs uppercase tracking-wide opacity-70">
+                Score{" "}
+              </span>
+              <span className={`font-mono font-semibold ${scoreTone(question.score)}`}>
+                {question.score}/100
+              </span>
+            </p>
+            {question.feedback ? <Markdown>{question.feedback}</Markdown> : null}
+          </div>
+        </Message>
+      ) : null}
+    </>
+  );
+}
 function CandidateLayout({
   jobs,
   applications,
@@ -683,125 +749,139 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
                       </div>
                     ) : currentQuestion ? (
                       <ChatContainer className="space-y-3">
+                        {row.questions.slice(0, questionIndex).map((q, qi) => (
+                          <PastTurn
+                            key={`${skill}-past-${qi}`}
+                            question={q}
+                            index={qi}
+                          />
+                        ))}
+
                         <Message role="assistant">
                           <div className="space-y-1">
-                            <p className="text-xs opacity-80">
+                            <p className="text-xs uppercase tracking-wide opacity-70">
                               {currentQuestion.kind === "mcq"
                                 ? "MCQ"
                                 : currentQuestion.kind === "coding"
-                                  ? `Coding (${currentQuestion.language || "code"})`
-                                  : "Descriptive"}{" "}
-                              • Question {questionIndex + 1}
+                                  ? `Coding · ${currentQuestion.language || "code"}`
+                                  : "Open-ended"}{" "}
+                              · Question {questionIndex + 1} of 7
                             </p>
                             <Markdown>{currentQuestion.prompt}</Markdown>
                           </div>
                         </Message>
 
                         {currentQuestion.kind === "mcq" ? (
-                          <div className="space-y-2">
-                            {(currentQuestion.options || []).map((opt, idx) => {
-                              const selected = selectedSkill === skill && selectedMcqOption === idx;
-                              return (
-                                <button
-                                  key={`${skill}-opt-${idx}`}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedSkill(skill);
-                                    setSelectedMcqOption(idx);
+                          <div className="flex w-full justify-start">
+                            <div className="ml-10 flex-1 space-y-2">
+                              {(currentQuestion.options || []).map((opt, idx) => {
+                                const selected = selectedSkill === skill && selectedMcqOption === idx;
+                                return (
+                                  <button
+                                    key={`${skill}-opt-${idx}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedSkill(skill);
+                                      setSelectedMcqOption(idx);
+                                    }}
+                                    className={`w-full rounded-2xl border px-4 py-2.5 text-left text-sm transition-colors ${
+                                      selected
+                                        ? "border-primary bg-primary/10 text-foreground"
+                                        : "border-border bg-background hover:bg-muted"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                              <div className="flex justify-end">
+                                <Button
+                                  disabled={busy || selectedMcqOption === null}
+                                  onClick={async () => {
+                                    try {
+                                      setBusy(true);
+                                      await submitSkillAnswer({
+                                        applicationIdRef: applicationId,
+                                        skill,
+                                        selectedOptionIndex: selectedMcqOption
+                                      });
+                                      setSelectedMcqOption(null);
+                                      toast.success("Answer submitted.");
+                                      refreshApplications().catch(() => {});
+                                    } catch (e) {
+                                      toast.error(e.message || "Failed to submit answer");
+                                    } finally {
+                                      setBusy(false);
+                                    }
                                   }}
-                                  className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                                    selected
-                                      ? "border-primary bg-primary/10 text-foreground"
-                                      : "border-border bg-background hover:bg-muted"
-                                  }`}
                                 >
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                            <div className="flex justify-end">
-                              <Button
-                                disabled={busy || selectedMcqOption === null}
-                                onClick={async () => {
-                                  try {
-                                    setBusy(true);
-                                    await submitSkillAnswer({
-                                      applicationIdRef: applicationId,
-                                      skill,
-                                      selectedOptionIndex: selectedMcqOption
-                                    });
-                                    setSelectedMcqOption(null);
-                                    toast.success("Answer submitted.");
-                                    refreshApplications().catch(() => {});
-                                  } catch (e) {
-                                    toast.error(e.message || "Failed to submit answer");
-                                  } finally {
-                                    setBusy(false);
-                                  }
-                                }}
-                              >
-                                Submit answer
-                              </Button>
+                                  Submit answer
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ) : currentQuestion.kind === "coding" ? (
-                          <div className="space-y-2">
-                            <CodeWorkspace
-                              language={currentQuestion.language || "code"}
-                              monacoLanguage={
-                                MONACO_LANGUAGE_MAP[currentQuestion.language] ||
-                                "plaintext"
-                              }
-                              value={
-                                selectedSkill === skill
-                                  ? codeAnswer
-                                  : currentQuestion.boilerplate || ""
-                              }
-                              boilerplate={currentQuestion.boilerplate || ""}
-                              onChange={(next) => {
-                                setSelectedSkill(skill);
-                                setCodeAnswer(next);
-                              }}
-                              disabled={busy}
-                              height={360}
-                            />
-                            <div className="flex items-center justify-end">
-                              <Button
-                                disabled={busy || !codeAnswer.trim()}
-                                onClick={async () => {
-                                  try {
-                                    setBusy(true);
-                                    await submitSkillAnswer({
-                                      applicationIdRef: applicationId,
-                                      skill,
-                                      answerText: codeAnswer
-                                    });
-                                    toast.success("Code submitted.");
-                                    refreshApplications().catch(() => {});
-                                  } catch (e) {
-                                    toast.error(e.message || "Failed to submit answer");
-                                  } finally {
-                                    setBusy(false);
-                                  }
+                          <div className="flex w-full justify-start">
+                            <div className="ml-10 flex-1 space-y-2">
+                              <CodeWorkspace
+                                language={currentQuestion.language || "code"}
+                                monacoLanguage={
+                                  MONACO_LANGUAGE_MAP[currentQuestion.language] ||
+                                  "plaintext"
+                                }
+                                value={
+                                  selectedSkill === skill
+                                    ? codeAnswer
+                                    : currentQuestion.boilerplate || ""
+                                }
+                                boilerplate={currentQuestion.boilerplate || ""}
+                                onChange={(next) => {
+                                  setSelectedSkill(skill);
+                                  setCodeAnswer(next);
                                 }}
-                              >
-                                Submit code
-                              </Button>
+                                disabled={busy}
+                                height={360}
+                              />
+                              <div className="flex items-center justify-end">
+                                <Button
+                                  disabled={busy || !codeAnswer.trim()}
+                                  onClick={async () => {
+                                    try {
+                                      setBusy(true);
+                                      await submitSkillAnswer({
+                                        applicationIdRef: applicationId,
+                                        skill,
+                                        answerText: codeAnswer
+                                      });
+                                      toast.success("Code submitted.");
+                                      refreshApplications().catch(() => {});
+                                    } catch (e) {
+                                      toast.error(e.message || "Failed to submit answer");
+                                    } finally {
+                                      setBusy(false);
+                                    }
+                                  }}
+                                >
+                                  Submit code
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ) : (
                           <PromptInput
                             value={selectedSkill === skill ? descriptiveAnswer : ""}
                             onChange={(e) => setDescriptiveAnswer(e.target.value)}
-                            placeholder={`Your answer for ${skill}...`}
+                            placeholder={`Type your answer for ${skill}…`}
                             disabled={busy}
                             onSubmit={async () => {
+                              const text = descriptiveAnswer.trim();
+                              if (!text) return;
                               try {
                                 setBusy(true);
                                 await submitSkillAnswer({
                                   applicationIdRef: applicationId,
                                   skill,
-                                  answerText: descriptiveAnswer.trim()
+                                  answerText: text
                                 });
                                 setDescriptiveAnswer("");
                                 toast.success("Answer submitted.");
@@ -816,18 +896,7 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
                         )}
 
                         {busy && selectedSkill === skill ? (
-                          <ThinkingBar text="AI is grading your answer..." />
-                        ) : null}
-
-                        {typeof currentQuestion.score === "number" ? (
-                          <Message role="assistant">
-                            <div className="space-y-1">
-                              <p className="font-medium">Last score: {currentQuestion.score}</p>
-                              {currentQuestion.feedback ? (
-                                <Markdown>{currentQuestion.feedback}</Markdown>
-                              ) : null}
-                            </div>
-                          </Message>
+                          <ThinkingBar text="AI is grading your answer…" />
                         ) : null}
                       </ChatContainer>
                     ) : (

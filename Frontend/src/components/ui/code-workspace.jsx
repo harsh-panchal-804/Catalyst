@@ -211,14 +211,22 @@ export function CodeWorkspace({
         </div>
       </div>
 
-      {/* Editor */}
+      {/* Editor — wrapped in an extra padded panel so the editor doesn't sit
+          flush against the toolbar / statusbar borders. */}
       <div
         className={cn(
-          "overflow-hidden",
+          "overflow-hidden p-3",
           isDark ? "bg-[#1e1e1e]" : "bg-white",
           maximized ? "flex-1" : ""
         )}
       >
+        <div
+          className={cn(
+            "overflow-hidden rounded-md ring-1 ring-border/40",
+            isDark ? "bg-[#1e1e1e]" : "bg-white",
+            maximized ? "h-full" : ""
+          )}
+        >
         <Editor
           height={maximized ? "100%" : `${height}px`}
           language={monacoLanguage || "plaintext"}
@@ -267,6 +275,7 @@ export function CodeWorkspace({
             lineNumbersMinChars: 3
           }}
         />
+        </div>
       </div>
 
       {/* Status bar */}
