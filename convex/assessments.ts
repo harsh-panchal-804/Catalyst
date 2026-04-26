@@ -2,75 +2,25 @@ import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
 import { requireUser } from "./auth";
+import { callHfJson } from "./llm";
 
-const HF_CHAT_API_URL = "https://router.huggingface.co/v1/chat/completions";
-
-function getHfConfig() {
-  const token = process.env.HUGGINGFACE_TOKEN || process.env.HF_TOKEN || "";
-  const model = process.env.HUGGINGFACE_MODEL || "Qwen/Qwen2.5-7B-Instruct";
-  if (!token) {
-    throw new Error("Missing HUGGINGFACE_TOKEN in Convex environment variables.");
-  }
-  return { token, model };
-}
-
-function extractJson(text: string) {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("LLM response did not contain JSON.");
-  return JSON.parse(match[0]);
-}
-
-async function callHfJson({ systemPrompt, userPrompt }: { systemPrompt: string; userPrompt: any }) {
-  const { token, model } = getHfConfig();
-  const response = await fetch(HF_CHAT_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: JSON.stringify(userPrompt, null, 2) }
-      ]
-    })
-  });
-
-  const raw = await response.text();
-  let payload: any = null;
-  try {
-    payload = JSON.parse(raw);
-  } catch (_error) {
-    throw new Error(`Hugging Face API returned non-JSON response (${response.status}).`);
-  }
-  if (!response.ok) {
-    throw new Error(payload?.error || "Hugging Face API error");
-  }
-  const text = payload?.choices?.[0]?.message?.content || "{}";
-  return extractJson(text);
-}
-
-function buildQuestionSystemPrompt() {
+function buildQuestionBatchSystemPrompt() {
   return `
-You generate interview questions for ONE skill at a time.
+You design a 7-question interview for ONE skill, returned in a single response.
 
-Return STRICT JSON only.
+Return STRICT JSON only — no markdown, no commentary.
 
-Constraints:
-- questionNumber is between 1 and 7.
-- For questionNumber 1-3: kind="mcq" with exactly 4 options.
-- Provide correctOptionIndex (0-3) for MCQ.
-- For questionNumber 4-6: kind="descriptive" with no options and no correctOptionIndex.
-- For questionNumber 7: kind="coding" with a clear problem statement specific to the skill.
-  Include "language" (one of: "javascript","typescript","python","java","cpp","go") and a "boilerplate"
-  starter code string. The boilerplate must compile/parse, define the function/class signature,
-  contain a TODO comment, and be ready for the candidate to implement. Keep it under ~30 lines.
-- Increase difficulty progressively.
+Top-level shape:
+{
+  "questions": [Q1, Q2, Q3, Q4, Q5, Q6, Q7]
+}
 
-Output shapes:
+Strict order and kinds (positional):
+- questions[0..2] -> kind="mcq"  (3 multiple-choice)
+- questions[3..5] -> kind="descriptive"  (3 short-answer)
+- questions[6]    -> kind="coding"  (1 coding problem)
+
+Each question shape:
 MCQ:
 {
   "kind": "mcq",
@@ -79,7 +29,7 @@ MCQ:
   "correctOptionIndex": 0
 }
 
-Descriptive:
+Descriptive (short text):
 {
   "kind": "descriptive",
   "prompt": "string"
@@ -88,111 +38,110 @@ Descriptive:
 Coding:
 {
   "kind": "coding",
-  "prompt": "string (problem statement, inputs, outputs, examples, constraints)",
-  "language": "javascript",
+  "prompt": "string (problem, inputs/outputs, examples, constraints)",
+  "language": "javascript|typescript|python|java|cpp|go",
   "boilerplate": "// starter code with function signature and TODO"
 }
-Do not include markdown.
+
+Hard rules — violating any of these is unacceptable:
+1. UNIQUENESS: Every prompt MUST be distinctly different from the other 6. No repeats, no near-duplicates, no rewording the same question.
+2. COVERAGE: The 7 prompts together must cover DIFFERENT subtopics of the skill (e.g. for React: hooks, rendering, state, effects, performance, ecosystem). No two questions on the same subtopic.
+3. DIFFICULTY: Increase progressively across positions 0->6 — easy -> medium -> hard.
+4. MCQs must have exactly 4 distinct options and one correctOptionIndex in [0,3].
+5. The coding boilerplate must compile/parse, define the function/class signature, include a TODO, and stay under ~30 lines.
+6. Calibrate questions to the candidate's resumeText and the jobDescription provided in the user message.
 `.trim();
 }
 
-const ALLOWED_RESOURCE_HOSTS = new Set<string>([
-  "developer.mozilla.org",
-  "react.dev",
-  "legacy.reactjs.org",
-  "nextjs.org",
-  "vuejs.org",
-  "angular.dev",
-  "svelte.dev",
-  "redux.js.org",
-  "tanstack.com",
-  "vitejs.dev",
-  "tailwindcss.com",
-  "nodejs.org",
-  "expressjs.com",
-  "deno.com",
-  "bun.sh",
-  "typescriptlang.org",
-  "www.typescriptlang.org",
-  "docs.python.org",
-  "www.python.org",
-  "fastapi.tiangolo.com",
-  "flask.palletsprojects.com",
-  "docs.djangoproject.com",
-  "pandas.pydata.org",
-  "numpy.org",
-  "scikit-learn.org",
-  "pytorch.org",
-  "www.tensorflow.org",
-  "huggingface.co",
-  "platform.openai.com",
-  "ai.google.dev",
-  "docs.anthropic.com",
-  "go.dev",
-  "doc.rust-lang.org",
-  "kotlinlang.org",
-  "spring.io",
-  "docs.oracle.com",
-  "swift.org",
-  "guides.rubyonrails.org",
-  "ruby-doc.org",
-  "en.cppreference.com",
-  "cppreference.com",
-  "isocpp.org",
-  "kubernetes.io",
-  "docs.docker.com",
-  "docs.aws.amazon.com",
-  "aws.amazon.com",
-  "learn.microsoft.com",
-  "cloud.google.com",
-  "www.terraform.io",
-  "developer.hashicorp.com",
-  "www.postgresql.org",
-  "dev.mysql.com",
-  "redis.io",
-  "www.mongodb.com",
-  "docs.mongodb.com",
-  "neo4j.com",
-  "www.prisma.io",
-  "graphql.org",
-  "www.apollographql.com",
-  "kafka.apache.org",
-  "spark.apache.org",
-  "airflow.apache.org",
-  "git-scm.com",
-  "docs.github.com",
-  "docs.gitlab.com",
-  "owasp.org",
-  "web.dev",
-  "developer.chrome.com",
-  "leetcode.com",
-  "www.hackerrank.com",
-  "exercism.org",
-  "roadmap.sh"
-]);
+const LANGUAGE_ALIASES: Record<string, string> = {
+  js: "javascript",
+  javascript: "javascript",
+  node: "javascript",
+  nodejs: "javascript",
+  ts: "typescript",
+  typescript: "typescript",
+  py: "python",
+  python: "python",
+  python3: "python",
+  java: "java",
+  cpp: "cpp",
+  "c++": "cpp",
+  cxx: "cpp",
+  go: "go",
+  golang: "go"
+};
+
+function defaultBoilerplate(language: string, skill: string): string {
+  const fnName = "solve";
+  const note = `// TODO: implement using ${skill}`;
+  switch (language) {
+    case "typescript":
+      return `function ${fnName}(input: any): any {\n  ${note}\n  return null;\n}`;
+    case "python":
+      return `def ${fnName}(input):\n    ${note}\n    return None\n`;
+    case "java":
+      return `public class Solution {\n  public static Object ${fnName}(Object input) {\n    ${note}\n    return null;\n  }\n}`;
+    case "cpp":
+      return `#include <bits/stdc++.h>\nusing namespace std;\n\nint ${fnName}(int input) {\n  ${note}\n  return 0;\n}`;
+    case "go":
+      return `package main\n\nfunc ${fnName}(input int) int {\n  ${note}\n  return 0\n}`;
+    case "javascript":
+    default:
+      return `function ${fnName}(input) {\n  ${note}\n  return null;\n}`;
+  }
+}
+
+function normalizeQuestion(
+  q: any,
+  expectedKind: "mcq" | "descriptive" | "coding",
+  skill: string
+): any | null {
+  if (!q || typeof q !== "object") return null;
+  const promptText = String(q.prompt || q.question || "").trim();
+  if (!promptText) return null;
+  const rawKind = String(q.kind || "").trim().toLowerCase();
+  // For descriptive/coding, allow the kind to be missing or wrong as long as
+  // the rest of the payload is shaped right — we already know what kind we asked for.
+  if (expectedKind === "mcq") {
+    if (rawKind && rawKind !== "mcq") return null;
+    let options = Array.isArray(q.options) ? q.options.map((x: any) => String(x)) : [];
+    if (options.length === 3) options.push("None of the above");
+    if (options.length === 5) options = options.slice(0, 4);
+    if (options.length !== 4) return null;
+    let idx = Number(q.correctOptionIndex ?? q.correct ?? 0);
+    if (!Number.isFinite(idx)) idx = 0;
+    idx = Math.max(0, Math.min(3, Math.round(idx)));
+    return { kind: "mcq", prompt: promptText, options, correctOptionIndex: idx };
+  }
+  if (expectedKind === "descriptive") {
+    return { kind: "descriptive", prompt: promptText };
+  }
+  // coding
+  const langRaw = String(q.language || q.lang || "javascript").trim().toLowerCase();
+  const language =
+    LANGUAGE_ALIASES[langRaw] ||
+    (Object.values(LANGUAGE_ALIASES).includes(langRaw) ? langRaw : null);
+  if (!language) return null;
+  const boilerRaw = String(q.boilerplate || q.starter || q.template || "");
+  const boilerplate = boilerRaw.trim() ? boilerRaw : defaultBoilerplate(language, skill);
+  return { kind: "coding", prompt: promptText, language, boilerplate };
+}
 
 function sanitizeResources(resources: any[]): any[] {
   if (!Array.isArray(resources)) return [];
-  return resources.map((r: any) => {
-    const title = String(r?.title || "").trim();
-    const type = String(r?.type || "Resource").trim() || "Resource";
-    let link: string | undefined;
-    if (r?.link && typeof r.link === "string") {
-      try {
-        const url = new URL(r.link.trim());
-        if (url.protocol === "https:" && ALLOWED_RESOURCE_HOSTS.has(url.host.toLowerCase())) {
-          link = url.toString();
-        }
-      } catch (_err) {
-        link = undefined;
-      }
-    }
-    return { title, type, ...(link ? { link } : {}) };
-  });
+  return resources
+    .map((r: any) => {
+      const title = String(r?.title || "").trim();
+      const type = String(r?.type || "Resource").trim() || "Resource";
+      if (!title) return null;
+      // Intentionally drop any LLM-generated URL — the client derives a safe
+      // canonical or web-search link from (title, type, skill) at render time.
+      return { title: title.slice(0, 200), type: type.slice(0, 50) };
+    })
+    .filter(Boolean) as any[];
 }
 
 function buildGradeSystemPrompt() {
-  const allowedHosts = Array.from(ALLOWED_RESOURCE_HOSTS).sort();
   return `
 You are grading a candidate answer for ONE skill.
 Return STRICT JSON only.
@@ -225,20 +174,18 @@ If questionNumber == 7, also return:
   "timelineWeeks": number,
   "focusAreas": ["string"],
   "adjacentSkills": ["string"],
-  "resources": [{"title":"string","type":"Documentation|Course|Project|Book|Practice","link":"string (optional)"}],
+  "resources": [{"title":"string","type":"Documentation|Course|Project|Book|Practice"}],
   "weeklyMilestones": ["Week 1: ...", "Week 2: ..."]
 }
 
-CRITICAL link policy (resources[].link):
-- Use ONLY https URLs whose host is in this allowlist of stable, official documentation/practice sites:
-${allowedHosts.map((h) => `  - ${h}`).join("\n")}
-- Prefer the canonical documentation root (e.g., https://react.dev/learn,
-  https://developer.mozilla.org/en-US/docs/Web/JavaScript, https://docs.python.org/3/tutorial/).
-  Avoid deep links to specific blog posts, version-pinned slugs, course IDs, or video URLs.
-- If you are NOT confident a URL exists exactly as written, OMIT the "link" field for that resource.
-  Empty/uncertain links are better than broken ones. The "title" alone is acceptable.
-- Never invent links on medium.com, dev.to, youtube.com, udemy.com, coursera.org,
-  freecodecamp.org, hashnode, substack, or personal blogs.
+Resource policy (CRITICAL):
+- Each resource MUST have ONLY a "title" and a "type". Do NOT output a "link" field.
+  The application maps (title, type, skill) to a canonical safe URL on its own.
+  Inventing URLs leads to broken 404 links — never include them.
+- title: short, specific, descriptive (e.g., "Official React Tutorial",
+  "Effective Python — Brett Slatkin", "Advent of Code – Day 1: Two Sum").
+- type: one of Documentation | Course | Project | Book | Practice.
+- Aim for 3-6 high-signal resources, sorted by recommended order.
 
 Output JSON:
 {
@@ -765,61 +712,73 @@ export const initializeSkillQuestions = action({
     if (!ctxData.app) throw new Error("Application not found");
     if (!ctxData.job) throw new Error("Job not found");
 
-    const systemPrompt = buildQuestionSystemPrompt();
-    const questions: any[] = [];
-    const priorSkillQA: any[] = [];
-    for (let i = 1; i <= 7; i++) {
-      const kind = i <= 3 ? "mcq" : i <= 6 ? "descriptive" : "coding";
-      const q = await callHfJson({
+    const systemPrompt = buildQuestionBatchSystemPrompt();
+    const expectedKinds: Array<"mcq" | "descriptive" | "coding"> = [
+      "mcq",
+      "mcq",
+      "mcq",
+      "descriptive",
+      "descriptive",
+      "descriptive",
+      "coding"
+    ];
+
+    async function generateBatch(extraNote?: string) {
+      const raw: any = await callHfJson({
         systemPrompt,
         userPrompt: {
-          task: "Generate the next question for a single skill.",
+          task: "Generate all 7 unique questions for this single skill in one response.",
           jobDescription: ctxData.job.description,
           resumeText: ctxData.app.resumeTextSnapshot,
           skill: ctxData.row.skill,
-          questionNumber: i,
-          kind,
-          priorSkillQA
-        }
+          ...(extraNote ? { regenerationNote: extraNote } : {})
+        },
+        // 7 questions including a coding boilerplate need more headroom than
+        // the default 1500-token cap.
+        maxTokens: 3500
       });
+      return Array.isArray(raw?.questions)
+        ? raw.questions
+        : Array.isArray(raw)
+          ? raw
+          : null;
+    }
 
-      if (kind === "mcq") {
-        const options = Array.isArray(q.options) ? q.options : [];
-        const idx = Number(q.correctOptionIndex);
-        if (q.kind !== "mcq" || options.length !== 4 || !Number.isFinite(idx) || idx < 0 || idx > 3) {
-          throw new Error("LLM returned invalid MCQ JSON.");
-        }
-        questions.push({
-          kind: "mcq",
-          prompt: String(q.prompt || "").trim(),
-          options: options.map((x: any) => String(x)),
-          correctOptionIndex: idx
-        });
-      } else if (kind === "descriptive") {
-        if (q.kind !== "descriptive") throw new Error("LLM returned invalid descriptive JSON.");
-        questions.push({
-          kind: "descriptive",
-          prompt: String(q.prompt || "").trim()
-        });
-      } else {
-        const allowedLangs = ["javascript", "typescript", "python", "java", "cpp", "go"];
-        const language = String(q.language || "").trim().toLowerCase();
-        const boilerplate = String(q.boilerplate || "");
-        if (
-          q.kind !== "coding" ||
-          !allowedLangs.includes(language) ||
-          !boilerplate.trim() ||
-          !String(q.prompt || "").trim()
-        ) {
-          throw new Error("LLM returned invalid coding JSON.");
-        }
-        questions.push({
-          kind: "coding",
-          prompt: String(q.prompt).trim(),
-          language,
-          boilerplate
-        });
+    function normalizeAndDedupe(arr: any[] | null): any[] | null {
+      if (!Array.isArray(arr) || arr.length < 7) return null;
+      const out: any[] = [];
+      const seen = new Set<string>();
+      for (let i = 0; i < 7; i++) {
+        const norm = normalizeQuestion(arr[i], expectedKinds[i], ctxData.row.skill);
+        if (!norm) return null;
+        const fingerprint = String(norm.prompt || "")
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 160);
+        if (!fingerprint || seen.has(fingerprint)) return null;
+        seen.add(fingerprint);
+        out.push(norm);
       }
+      return out;
+    }
+
+    let batch = await generateBatch();
+    let questions = normalizeAndDedupe(batch);
+    if (!questions) {
+      // One corrective retry — the model usually drops a coding boilerplate or
+      // repeats a prompt the first time around.
+      batch = await generateBatch(
+        "Your previous response was rejected. Make sure: exactly 7 entries; positions 0..2 are MCQs, 3..5 descriptive, 6 coding; every prompt is unique and on a different subtopic; coding has language + boilerplate."
+      );
+      questions = normalizeAndDedupe(batch);
+    }
+    if (!questions) {
+      throw new Error(
+        `LLM did not return 7 unique valid questions for skill "${ctxData.row.skill}" after retry. Got ${
+          Array.isArray(batch) ? batch.length : 0
+        } entries.`
+      );
     }
 
     await ctx.runMutation(api.assessments._setSkillQuestions, {

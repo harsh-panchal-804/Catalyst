@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   PolarAngleAxis,
@@ -16,7 +17,9 @@ import {
   Mail,
   RefreshCw,
   Save,
+  Search,
   ShieldCheck,
+  Sparkles,
   Users,
   X
 } from "lucide-react";
@@ -73,6 +76,30 @@ function formatSeconds(seconds) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function fitToneClass(score) {
+  if (typeof score !== "number") return "text-muted-foreground";
+  if (score >= 80) return "text-emerald-500";
+  if (score >= 60) return "text-amber-500";
+  return "text-rose-500";
+}
+
+function mergeSkillTokens(existingCsv, additions) {
+  const tokens = String(existingCsv || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const seen = new Set(tokens.map((x) => x.toLowerCase()));
+  for (const a of additions || []) {
+    const s = String(a || "").trim();
+    if (!s) continue;
+    const k = s.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    tokens.push(s);
+  }
+  return tokens.join(", ");
+}
+
 function downloadCsv(filename, rows) {
   if (!rows.length) {
     toast.error("Nothing to export.");
@@ -102,8 +129,13 @@ function downloadCsv(filename, rows) {
 function ManageTab({ jobs, adminJobForm, setAdminJobForm, createJob }) {
   const updateJobStatus = useMutation(api.jobs.updateJobStatus);
   const updateJob = useMutation(api.jobs.updateJob);
+  const suggestSkillsFromJD = useAction(api.jobs.suggestSkillsFromJD);
+  const validateLinks = useAction(api.learning.validateResourceLinks);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ title: "", description: "", requiredSkills: "" });
+  const [suggestingCreate, setSuggestingCreate] = useState(false);
+  const [suggestingEdit, setSuggestingEdit] = useState(false);
+  const [validating, setValidating] = useState(false);
 
   function startEdit(job) {
     setEditing(job._id);
@@ -141,6 +173,62 @@ function ManageTab({ jobs, adminJobForm, setAdminJobForm, createJob }) {
     }
   }
 
+  async function suggestForCreate() {
+    if (!adminJobForm.description?.trim()) {
+      toast.error("Add a job description first.");
+      return;
+    }
+    try {
+      setSuggestingCreate(true);
+      const res = await suggestSkillsFromJD({
+        jdText: adminJobForm.description,
+        title: adminJobForm.title || ""
+      });
+      const merged = mergeSkillTokens(adminJobForm.requiredSkills, res.skills);
+      setAdminJobForm((p) => ({ ...p, requiredSkills: merged }));
+      toast.success(`Suggested ${res.skills.length} skills.`);
+    } catch (e) {
+      toast.error(e.message || "Failed to suggest skills");
+    } finally {
+      setSuggestingCreate(false);
+    }
+  }
+
+  async function suggestForEdit() {
+    if (!form.description?.trim()) {
+      toast.error("Add a job description first.");
+      return;
+    }
+    try {
+      setSuggestingEdit(true);
+      const res = await suggestSkillsFromJD({
+        jdText: form.description,
+        title: form.title || ""
+      });
+      const merged = mergeSkillTokens(form.requiredSkills, res.skills);
+      setForm((p) => ({ ...p, requiredSkills: merged }));
+      toast.success(`Suggested ${res.skills.length} skills.`);
+    } catch (e) {
+      toast.error(e.message || "Failed to suggest skills");
+    } finally {
+      setSuggestingEdit(false);
+    }
+  }
+
+  async function runResourceCheck() {
+    try {
+      setValidating(true);
+      const out = await validateLinks({ limit: 100 });
+      toast.success(
+        `Checked ${out.checked} resources · ${out.ok} ok · ${out.broken} broken.`
+      );
+    } catch (e) {
+      toast.error(e.message || "Failed to validate resources");
+    } finally {
+      setValidating(false);
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.3fr]">
       <Card>
@@ -175,16 +263,42 @@ function ManageTab({ jobs, adminJobForm, setAdminJobForm, createJob }) {
               setAdminJobForm((p) => ({ ...p, requiredSkills: e.target.value }))
             }
           />
-          <Button onClick={createJob}>Create Job</Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={createJob}>Create Job</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={suggestForCreate}
+              disabled={suggestingCreate || !adminJobForm.description?.trim()}
+              title="Use AI to extract required skills from the job description"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {suggestingCreate ? "Suggesting…" : "Suggest skills from JD"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> Jobs
-          </CardTitle>
-          <CardDescription>Edit details, change status (draft / open / closed)</CardDescription>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Jobs
+              </CardTitle>
+              <CardDescription>Edit details, change status (draft / open / closed)</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runResourceCheck}
+              disabled={validating}
+              title="HEAD-check every learning-plan resource link and flag broken ones"
+            >
+              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${validating ? "animate-spin" : ""}`} />
+              {validating ? "Checking…" : "Validate resource links"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
@@ -230,9 +344,9 @@ function ManageTab({ jobs, adminJobForm, setAdminJobForm, createJob }) {
                           onValueChange={(v) => changeStatus(j._id, v)}
                           className="w-28"
                         >
-                          <option value="draft">draft</option>
-                          <option value="open">open</option>
-                          <option value="closed">closed</option>
+                          <option value="draft">Draft</option>
+                          <option value="open">Open</option>
+                          <option value="closed">Closed</option>
                         </Select>
                         <Button size="sm" variant="outline" onClick={() => startEdit(j)}>
                           <Edit3 className="h-3.5 w-3.5" />
@@ -270,7 +384,16 @@ function ManageTab({ jobs, adminJobForm, setAdminJobForm, createJob }) {
                   setForm((p) => ({ ...p, requiredSkills: e.target.value }))
                 }
               />
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={suggestForEdit}
+                  disabled={suggestingEdit || !form.description?.trim()}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {suggestingEdit ? "Suggesting…" : "Suggest skills"}
+                </Button>
                 <Button onClick={saveEdit}>
                   <Save className="mr-2 h-4 w-4" /> Save
                 </Button>
@@ -287,6 +410,7 @@ function ApplicantsTab({ jobs, selectedJobId, setSelectedJobId }) {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(null);
+  const [sortBy, setSortBy] = useState("final");
 
   const detail = useQuery(
     api.analytics.jobApplicantsDetail,
@@ -302,9 +426,13 @@ function ApplicantsTab({ jobs, selectedJobId, setSelectedJobId }) {
       r = r.filter((x) =>
         (x.candidateEmail + " " + (x.candidateName || "")).toLowerCase().includes(q)
       );
-    r.sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1));
+    if (sortBy === "fit") {
+      r.sort((a, b) => (b.fitScore ?? -1) - (a.fitScore ?? -1));
+    } else {
+      r.sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1));
+    }
     return r;
-  }, [detail, filter, search]);
+  }, [detail, filter, search, sortBy]);
 
   function exportCsv() {
     if (!detail) return;
@@ -316,6 +444,8 @@ function ApplicantsTab({ jobs, selectedJobId, setSelectedJobId }) {
         name: r.candidateName,
         appliedAt: r.appliedAt ? new Date(r.appliedAt).toISOString() : "",
         status: r.assessmentStatus,
+        fitScore: r.fitScore ?? "",
+        yearsOfExperience: r.yearsOfExperience ?? "",
         finalScore: r.finalScore ?? "",
         recommendation: r.recommendation ?? ""
       };
@@ -375,6 +505,10 @@ function ApplicantsTab({ jobs, selectedJobId, setSelectedJobId }) {
               <option value="in_progress">In progress</option>
               <option value="completed">Completed</option>
             </Select>
+            <Select value={sortBy} onValueChange={setSortBy} className="w-40">
+              <option value="final">Sort: Final score</option>
+              <option value="fit">Sort: Fit score</option>
+            </Select>
             <Input
               className="w-64"
               placeholder="Search email or name…"
@@ -415,6 +549,8 @@ function ApplicantsTab({ jobs, selectedJobId, setSelectedJobId }) {
                     <TableHead>Candidate</TableHead>
                     <TableHead>Applied</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Fit</TableHead>
+                    <TableHead>YoE</TableHead>
                     <TableHead>Final</TableHead>
                     <TableHead>Median / Q</TableHead>
                     <TableHead>Per-skill scores</TableHead>
@@ -450,6 +586,8 @@ function ApplicantRow({ row, idx, skills, expanded, onToggle, onEmail }) {
     api.analytics.getApplicationDetailAdmin,
     expanded ? { applicationIdRef: row.applicationId } : "skip"
   );
+  const reprocess = useAction(api.resume.reprocessApplication);
+  const [reprocessing, setReprocessing] = useState(false);
   return (
     <>
       <TableRow>
@@ -476,6 +614,18 @@ function ApplicantRow({ row, idx, skills, expanded, onToggle, onEmail }) {
           >
             {row.assessmentStatus.replace("_", " ")}
           </Badge>
+        </TableCell>
+        <TableCell>
+          {typeof row.fitScore === "number" ? (
+            <span className={`font-mono text-sm font-semibold ${fitToneClass(row.fitScore)}`}>
+              {row.fitScore}%
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </TableCell>
+        <TableCell className="font-mono text-xs">
+          {typeof row.yearsOfExperience === "number" ? `${row.yearsOfExperience}y` : "—"}
         </TableCell>
         <TableCell className="font-mono text-sm">
           {row.finalScore ?? "—"}
@@ -506,6 +656,25 @@ function ApplicantRow({ row, idx, skills, expanded, onToggle, onEmail }) {
         </TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              title="Re-run resume parse / fit score"
+              disabled={reprocessing}
+              onClick={async () => {
+                try {
+                  setReprocessing(true);
+                  await reprocess({ applicationIdRef: row.applicationId });
+                  toast.success("Reprocessed.");
+                } catch (e) {
+                  toast.error(e.message || "Reprocess failed");
+                } finally {
+                  setReprocessing(false);
+                }
+              }}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${reprocessing ? "animate-spin" : ""}`} />
+            </Button>
             <Button variant="outline" size="sm" onClick={onEmail} title="Email candidate">
               <Mail className="h-3.5 w-3.5" />
             </Button>
@@ -517,7 +686,7 @@ function ApplicantRow({ row, idx, skills, expanded, onToggle, onEmail }) {
       </TableRow>
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={8}>
+          <TableCell colSpan={10}>
             {!detail ? (
               <p className="text-xs text-muted-foreground">Loading details…</p>
             ) : (
@@ -530,10 +699,139 @@ function ApplicantRow({ row, idx, skills, expanded, onToggle, onEmail }) {
   );
 }
 
+function StructuredResumePanel({ structured, fitScore, fitBreakdown }) {
+  if (!structured) {
+    return (
+      <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+        Resume not yet parsed. Reprocess to extract structured data and a fit score.
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="rounded-md border p-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold">Structured resume</p>
+          {typeof fitScore === "number" ? (
+            <Badge variant="secondary" className={`font-mono ${fitToneClass(fitScore)}`}>
+              Fit {fitScore}%
+            </Badge>
+          ) : null}
+          {typeof structured.yearsOfExperience === "number" ? (
+            <Badge variant="outline" className="font-mono">
+              {structured.yearsOfExperience}y experience
+            </Badge>
+          ) : null}
+        </div>
+        {structured.summary ? (
+          <p className="mb-2 text-xs italic text-muted-foreground">{structured.summary}</p>
+        ) : null}
+        {Array.isArray(structured.skills) && structured.skills.length ? (
+          <div className="mb-2">
+            <p className="text-xs font-medium">Skills</p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {structured.skills.map((s) => (
+                <Badge key={s} variant="outline" className="text-xs">
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {Array.isArray(structured.experiences) && structured.experiences.length ? (
+          <div className="mb-2">
+            <p className="text-xs font-medium">Experience</p>
+            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+              {structured.experiences.map((e, i) => (
+                <li key={`exp-${i}`}>
+                  <span className="font-medium text-foreground">{e.title}</span>
+                  {e.company ? <span> · {e.company}</span> : null}
+                  {e.startDate || e.endDate ? (
+                    <span>
+                      {" "}
+                      ({e.startDate || "?"} – {e.endDate || "Present"})
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {Array.isArray(structured.education) && structured.education.length ? (
+          <div>
+            <p className="text-xs font-medium">Education</p>
+            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+              {structured.education.map((ed, i) => (
+                <li key={`ed-${i}`}>
+                  <span className="font-medium text-foreground">{ed.degree}</span>
+                  {ed.field ? <span> · {ed.field}</span> : null}
+                  {ed.institution ? <span> · {ed.institution}</span> : null}
+                  {ed.year ? <span> · {ed.year}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+      <div className="rounded-md border p-3">
+        <p className="mb-2 text-sm font-semibold">Fit breakdown</p>
+        {fitBreakdown ? (
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Keyword overlap</span>
+              <span className="font-mono">{fitBreakdown.keywordOverlapPct}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Semantic match</span>
+              <span className="font-mono">{fitBreakdown.semanticScore}%</span>
+            </div>
+            {fitBreakdown.matchedSkills?.length ? (
+              <div>
+                <p className="font-medium">Matched skills</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {fitBreakdown.matchedSkills.map((s) => (
+                    <Badge key={`m-${s}`} variant="default" className="text-[10px]">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {fitBreakdown.missingSkills?.length ? (
+              <div>
+                <p className="font-medium">Missing skills</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {fitBreakdown.missingSkills.map((s) => (
+                    <Badge key={`g-${s}`} variant="outline" className="text-[10px]">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {fitBreakdown.explanation ? (
+              <p className="italic text-muted-foreground">{fitBreakdown.explanation}</p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Fit not computed yet — click the refresh icon on the row to reprocess.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ApplicantDetail({ detail }) {
   const skills = detail?.skills || [];
   return (
     <div className="space-y-3">
+      <StructuredResumePanel
+        structured={detail?.structured}
+        fitScore={detail?.fitScore}
+        fitBreakdown={detail?.fitBreakdown}
+      />
       {skills.length === 0 ? (
         <p className="text-xs text-muted-foreground">No skill assessments yet.</p>
       ) : (
@@ -595,6 +893,159 @@ function ApplicantDetail({ detail }) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function SearchTab({ jobs, selectedJobId, setSelectedJobId }) {
+  const [queryText, setQueryText] = useState("");
+  const [scopeJob, setScopeJob] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState(null);
+  const searchByQuery = useAction(api.resume.searchByQuery);
+
+  async function runSearch() {
+    if (!queryText.trim()) {
+      toast.error("Type a search query first.");
+      return;
+    }
+    try {
+      setBusy(true);
+      const args = scopeJob && selectedJobId
+        ? { queryText, jobIdRef: selectedJobId, limit: 15 }
+        : { queryText, limit: 15 };
+      const out = await searchByQuery(args);
+      setResults(out);
+      if (!out.length) toast.info("No matches yet — try a different query.");
+    } catch (e) {
+      toast.error(e.message || "Search failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-4 w-4" /> Resume vector search
+          </CardTitle>
+          <CardDescription>
+            Search by natural language across all candidate resumes.
+            Example: "React + GraphQL with 3+ yrs and AWS production experience".
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="w-[28rem]"
+              placeholder="What are you looking for?"
+              value={queryText}
+              onChange={(e) => setQueryText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") runSearch();
+              }}
+            />
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={scopeJob}
+                onChange={(e) => setScopeJob(e.target.checked)}
+              />
+              Restrict to selected job
+            </label>
+            <Select
+              placeholder="Select a job"
+              value={selectedJobId || ""}
+              onValueChange={setSelectedJobId}
+              className="w-72"
+              disabled={!scopeJob}
+            >
+              {jobs.map((j) => (
+                <option key={j._id} value={j._id}>
+                  {j.jobId} — {j.title}
+                </option>
+              ))}
+            </Select>
+            <Button onClick={runSearch} disabled={busy || !queryText.trim()}>
+              {busy ? "Searching…" : "Search"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {results === null ? null : results.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardDescription>No matches.</CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="pt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>#</TableHead>
+                  <TableHead>Candidate</TableHead>
+                  <TableHead>Job</TableHead>
+                  <TableHead>Fit</TableHead>
+                  <TableHead>Vector match</TableHead>
+                  <TableHead>YoE</TableHead>
+                  <TableHead>Top skills</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {results.map((r, i) => (
+                  <TableRow key={r._id}>
+                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{r.candidateEmail}</div>
+                      {r.candidateName ? (
+                        <div className="text-xs text-muted-foreground">{r.candidateName}</div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <div className="font-medium">{r.jobTitle}</div>
+                      <div className="text-muted-foreground">{r.jobIdString}</div>
+                    </TableCell>
+                    <TableCell>
+                      {typeof r.fitScore === "number" ? (
+                        <span className={`font-mono text-sm font-semibold ${fitToneClass(r.fitScore)}`}>
+                          {r.fitScore}%
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {typeof r._score === "number" ? r._score.toFixed(3) : "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {typeof r.structured?.yearsOfExperience === "number"
+                        ? `${r.structured.yearsOfExperience}y`
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(r.structured?.skills || []).slice(0, 8).map((s) => (
+                          <Badge key={s} variant="outline" className="text-[10px]">
+                            {s}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Vector match is the cosine similarity between your query and a normalized resume embedding (0–1).
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -991,8 +1442,23 @@ function StatCard({ label, value }) {
   );
 }
 
+const ADMIN_TAB_VALUES = ["manage", "applicants", "search", "compare", "insights"];
+
 export function AdminDashboard({ jobs, adminJobForm, setAdminJobForm, createJob }) {
-  const [tab, setTab] = useState("manage");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const tab = ADMIN_TAB_VALUES.includes(urlTab) ? urlTab : "manage";
+  const setTab = (next) => {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (!next || next === "manage") params.delete("tab");
+        else params.set("tab", next);
+        return params;
+      },
+      { replace: true }
+    );
+  };
   const [selectedJobId, setSelectedJobId] = useState("");
 
   useEffect(() => {
@@ -1005,6 +1471,7 @@ export function AdminDashboard({ jobs, adminJobForm, setAdminJobForm, createJob 
         <TabsList>
           <TabsTrigger value="manage">Manage</TabsTrigger>
           <TabsTrigger value="applicants">Applicants</TabsTrigger>
+          <TabsTrigger value="search">Search</TabsTrigger>
           <TabsTrigger value="compare">Compare</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
@@ -1018,6 +1485,13 @@ export function AdminDashboard({ jobs, adminJobForm, setAdminJobForm, createJob 
         </TabsContent>
         <TabsContent value="applicants">
           <ApplicantsTab
+            jobs={jobs}
+            selectedJobId={selectedJobId}
+            setSelectedJobId={setSelectedJobId}
+          />
+        </TabsContent>
+        <TabsContent value="search">
+          <SearchTab
             jobs={jobs}
             selectedJobId={selectedJobId}
             setSelectedJobId={setSelectedJobId}

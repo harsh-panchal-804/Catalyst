@@ -132,7 +132,14 @@ export const jobApplicantsDetail = query({
           recommendation: result?.recommendation ?? null,
           completedAt: result?.completedAt ?? null,
           medianTimePerQuestionSec: median(durations),
-          skillScores
+          skillScores,
+          fitScore: typeof app.fitScore === "number" ? app.fitScore : null,
+          fitBreakdown: app.fitBreakdown || null,
+          parsedAt: app.parsedAt ?? null,
+          yearsOfExperience:
+            typeof app.resumeStructured?.yearsOfExperience === "number"
+              ? app.resumeStructured.yearsOfExperience
+              : null
         };
       })
     );
@@ -212,6 +219,15 @@ export const getApplicationDetailAdmin = query({
         q.eq("candidateIdRef", app.candidateIdRef).eq("jobIdRef", app.jobIdRef)
       )
       .collect();
-    return { application: app, job, candidate, result, skills };
+    return {
+      application: app,
+      job,
+      candidate,
+      result,
+      skills,
+      structured: app.resumeStructured || null,
+      fitScore: typeof app.fitScore === "number" ? app.fitScore : null,
+      fitBreakdown: app.fitBreakdown || null
+    };
   }
 });

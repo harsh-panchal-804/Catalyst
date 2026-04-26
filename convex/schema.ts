@@ -1,6 +1,30 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+const resumeStructuredValidator = v.object({
+  skills: v.array(v.string()),
+  experiences: v.array(
+    v.object({
+      title: v.string(),
+      company: v.optional(v.string()),
+      startDate: v.optional(v.string()),
+      endDate: v.optional(v.string()),
+      durationMonths: v.optional(v.number()),
+      description: v.optional(v.string())
+    })
+  ),
+  education: v.array(
+    v.object({
+      degree: v.string(),
+      institution: v.optional(v.string()),
+      field: v.optional(v.string()),
+      year: v.optional(v.string())
+    })
+  ),
+  yearsOfExperience: v.number(),
+  summary: v.optional(v.string())
+});
+
 export default defineSchema({
   users: defineTable({
     clerkUserId: v.string(),
@@ -34,10 +58,28 @@ export default defineSchema({
       v.literal("not_started"),
       v.literal("in_progress"),
       v.literal("completed")
-    )
+    ),
+    resumeStructured: v.optional(resumeStructuredValidator),
+    fitScore: v.optional(v.number()),
+    fitBreakdown: v.optional(
+      v.object({
+        keywordOverlapPct: v.number(),
+        semanticScore: v.number(),
+        matchedSkills: v.array(v.string()),
+        missingSkills: v.array(v.string()),
+        explanation: v.optional(v.string())
+      })
+    ),
+    resumeEmbedding: v.optional(v.array(v.float64())),
+    parsedAt: v.optional(v.number())
   })
     .index("by_job", ["jobIdRef"])
-    .index("by_candidate", ["candidateIdRef"]),
+    .index("by_candidate", ["candidateIdRef"])
+    .vectorIndex("by_resume_embedding", {
+      vectorField: "resumeEmbedding",
+      dimensions: 384,
+      filterFields: ["jobIdRef"]
+    }),
 
   assessmentSessions: defineTable({
     applicationIdRef: v.id("applications"),
@@ -112,6 +154,7 @@ export default defineSchema({
     .index("by_application", ["applicationIdRef"])
     .index("by_application_skill", ["applicationIdRef", "skill"])
     .index("by_candidate_job", ["candidateIdRef", "jobIdRef"])
+    .index("by_candidate", ["candidateIdRef"])
     .index("by_job_skill_score", ["jobIdRef", "skill", "skillScore"]),
 
   assessmentResults: defineTable({
@@ -137,5 +180,48 @@ export default defineSchema({
     updatedAt: v.number()
   })
     .index("by_skill_assessment", ["skillAssessmentIdRef"])
-    .index("by_skill_assessment_question", ["skillAssessmentIdRef", "questionIndex"])
+    .index("by_skill_assessment_question", ["skillAssessmentIdRef", "questionIndex"]),
+
+  learningProgress: defineTable({
+    skillAssessmentIdRef: v.id("skillAssessments"),
+    candidateIdRef: v.id("users"),
+    milestoneIndex: v.number(),
+    completed: v.boolean(),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    updatedAt: v.number()
+  })
+    .index("by_skill_assessment", ["skillAssessmentIdRef"])
+    .index("by_candidate", ["candidateIdRef"])
+    .index("by_skill_assessment_milestone", ["skillAssessmentIdRef", "milestoneIndex"]),
+
+  refresherQuizzes: defineTable({
+    skillAssessmentIdRef: v.id("skillAssessments"),
+    candidateIdRef: v.id("users"),
+    skill: v.string(),
+    questions: v.array(
+      v.object({
+        prompt: v.string(),
+        options: v.array(v.string()),
+        correctOptionIndex: v.number(),
+        explanation: v.optional(v.string()),
+        selectedOptionIndex: v.optional(v.number()),
+        isCorrect: v.optional(v.boolean())
+      })
+    ),
+    status: v.union(v.literal("in_progress"), v.literal("completed")),
+    score: v.optional(v.number()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number())
+  })
+    .index("by_skill_assessment", ["skillAssessmentIdRef"])
+    .index("by_candidate", ["candidateIdRef"]),
+
+  resourceHealth: defineTable({
+    url: v.string(),
+    status: v.union(v.literal("ok"), v.literal("broken"), v.literal("unknown")),
+    httpStatus: v.optional(v.number()),
+    lastCheckedAt: v.number(),
+    failureCount: v.number()
+  }).index("by_url", ["url"])
 });

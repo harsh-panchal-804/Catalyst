@@ -6,11 +6,33 @@ import {
   UserButton,
   useUser
 } from "@clerk/clerk-react";
-import { Link, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams
+} from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
+import { Sidebar, SidebarBody, SidebarLink } from "./components/ui/sidebar";
+import {
+  IconBriefcase,
+  IconChartHistogram,
+  IconLayoutDashboard,
+  IconScale,
+  IconSchool,
+  IconSearch,
+  IconShieldCheck,
+  IconUsers
+} from "@tabler/icons-react";
+import { motion } from "motion/react";
+import { cn } from "./lib/utils";
 import { Textarea } from "./components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Toaster, toast } from "sonner";
@@ -20,13 +42,16 @@ import { AnimatedThemeToggler } from "./components/ui/animated-theme-toggler";
 import { AnimatedShinyText } from "./components/ui/animated-shiny-text";
 import { JobsTab } from "./components/candidate/jobs-tab";
 import { AppliedJobsTab } from "./components/candidate/applied-jobs-tab";
+import { LearningPage } from "./components/candidate/learning-page";
 import { AdminDashboard } from "./components/admin/admin-dashboard";
 import { ChatContainer } from "./components/prompt-kit/chat-container";
 import { Message } from "./components/prompt-kit/message";
 import { PromptInput } from "./components/prompt-kit/prompt-input";
 import { ThinkingBar } from "./components/prompt-kit/thinking-bar";
-import Editor from "@monaco-editor/react";
 import { PixelImage } from "@/components/ui/pixel-image";
+import { getSafeResourceLink } from "./lib/resource-links";
+import { Markdown } from "./components/ui/markdown";
+import { CodeWorkspace } from "./components/ui/code-workspace";
 
 const MONACO_LANGUAGE_MAP = {
   javascript: "javascript",
@@ -108,12 +133,6 @@ function CandidateLayout({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end p-3">
-        <div className="flex items-center gap-2">
-          <AnimatedThemeToggler />
-          <UserButton />
-        </div>
-      </div>
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 lg:grid-cols-2">
         <JobsTab
           jobs={jobs}
@@ -151,15 +170,6 @@ function DashboardPage({
   const navigate = useNavigate();
   return (
     <div className={isAdmin ? "mx-auto max-w-7xl space-y-4" : "space-y-4"}>
-      {isAdmin ? (
-        <div className="flex items-center justify-end p-3">
-          <div className="flex items-center gap-2">
-            <AnimatedThemeToggler />
-            <UserButton />
-          </div>
-        </div>
-      ) : null}
-
       {isAdmin ? (
         <AdminDashboard
           jobs={jobs}
@@ -425,11 +435,22 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
               Status: {application?.assessmentStatus || "in_progress"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <AnimatedThemeToggler />
-            <Link to="/" className="text-sm underline">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/learning"
+              className="inline-flex items-center gap-1.5 text-sm underline-offset-4 hover:underline"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Learning hub
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-sm underline-offset-4 hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
             </Link>
+            <AnimatedThemeToggler />
           </div>
         </div>
         <div className="space-y-1">
@@ -624,20 +645,27 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
                               <div>
                                 <p className="font-semibold">Curated resources</p>
                                 <ul className="ml-5 list-disc text-muted-foreground">
-                                  {row.learningPlan.resources.map((r, i) => (
-                                    <li key={`rs-${i}`}>
-                                      {r.link ? (
-                                        <a className="underline" href={r.link} target="_blank" rel="noreferrer">
+                                  {row.learningPlan.resources.map((r, i) => {
+                                    const safe = getSafeResourceLink(r, skill);
+                                    return (
+                                      <li key={`rs-${i}`}>
+                                        <a
+                                          className="underline"
+                                          href={safe.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
                                           {r.title}
                                         </a>
-                                      ) : (
-                                        r.title
-                                      )}
-                                      {r.type ? (
-                                        <span className="ml-1 text-xs">({r.type})</span>
-                                      ) : null}
-                                    </li>
-                                  ))}
+                                        {r.type ? (
+                                          <span className="ml-1 text-xs">({r.type})</span>
+                                        ) : null}
+                                        {safe.source === "search" ? (
+                                          <span className="ml-1 text-[10px]">— web search</span>
+                                        ) : null}
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
                               </div>
                             ) : null}
@@ -665,7 +693,7 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
                                   : "Descriptive"}{" "}
                               • Question {questionIndex + 1}
                             </p>
-                            <p className="whitespace-pre-wrap">{currentQuestion.prompt}</p>
+                            <Markdown>{currentQuestion.prompt}</Markdown>
                           </div>
                         </Message>
 
@@ -718,46 +746,26 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
                           </div>
                         ) : currentQuestion.kind === "coding" ? (
                           <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              <Badge variant="secondary">
-                                Language: {currentQuestion.language || "code"}
-                              </Badge>
-                              <span>Implement the function in the editor below.</span>
-                            </div>
-                            <div className="overflow-hidden rounded-md border">
-                              <Editor
-                                height="360px"
-                                language={
-                                  MONACO_LANGUAGE_MAP[currentQuestion.language] ||
-                                  "plaintext"
-                                }
-                                value={
-                                  selectedSkill === skill
-                                    ? codeAnswer
-                                    : currentQuestion.boilerplate || ""
-                                }
-                                theme="vs-dark"
-                                onChange={(value) => setCodeAnswer(value ?? "")}
-                                options={{
-                                  minimap: { enabled: false },
-                                  fontSize: 13,
-                                  scrollBeyondLastLine: false,
-                                  automaticLayout: true,
-                                  tabSize: 2
-                                }}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={busy}
-                                onClick={() =>
-                                  setCodeAnswer(currentQuestion.boilerplate || "")
-                                }
-                              >
-                                Reset to boilerplate
-                              </Button>
+                            <CodeWorkspace
+                              language={currentQuestion.language || "code"}
+                              monacoLanguage={
+                                MONACO_LANGUAGE_MAP[currentQuestion.language] ||
+                                "plaintext"
+                              }
+                              value={
+                                selectedSkill === skill
+                                  ? codeAnswer
+                                  : currentQuestion.boilerplate || ""
+                              }
+                              boilerplate={currentQuestion.boilerplate || ""}
+                              onChange={(next) => {
+                                setSelectedSkill(skill);
+                                setCodeAnswer(next);
+                              }}
+                              disabled={busy}
+                              height={360}
+                            />
+                            <div className="flex items-center justify-end">
                               <Button
                                 disabled={busy || !codeAnswer.trim()}
                                 onClick={async () => {
@@ -813,9 +821,11 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
 
                         {typeof currentQuestion.score === "number" ? (
                           <Message role="assistant">
-                            <div>
+                            <div className="space-y-1">
                               <p className="font-medium">Last score: {currentQuestion.score}</p>
-                              <p className="text-muted-foreground">{currentQuestion.feedback || ""}</p>
+                              {currentQuestion.feedback ? (
+                                <Markdown>{currentQuestion.feedback}</Markdown>
+                              ) : null}
                             </div>
                           </Message>
                         ) : null}
@@ -843,6 +853,157 @@ function AssessmentPage({ email, fullName, authHeaders, refreshApplications }) {
           </CardContent>
         </Card>
       ) : null}
+    </div>
+  );
+}
+
+const BRAND_LOGO_URL =
+  "https://media.licdn.com/dms/image/v2/D560BAQEzBjCGyU-wsg/company-logo_200_200/company-logo_200_200/0/1730125488452/ai_deccan_logo?e=2147483647&v=beta&t=cc_gAknLXf7v4aW23hRw17JopzqOEsvGlYm2FOOrQb4";
+
+function BrandLogo({ open }) {
+  return (
+    <Link
+      to="/"
+      className="relative z-20 flex items-center gap-2 py-1 text-sm font-normal text-foreground"
+    >
+      <img
+        src={BRAND_LOGO_URL}
+        alt="SkillEval"
+        className="h-7 w-7 shrink-0 rounded-md object-cover ring-1 ring-border/60"
+      />
+      {open ? (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="font-semibold whitespace-pre text-foreground"
+        >
+          SkillEval
+        </motion.span>
+      ) : null}
+    </Link>
+  );
+}
+
+function AppShell({ isAdmin, children }) {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const currentTab = new URLSearchParams(location.search).get("tab") || "manage";
+
+  const navLinks = useMemo(() => {
+    if (isAdmin) {
+      return [
+        {
+          label: "Manage",
+          href: "/",
+          tab: "manage",
+          icon: <IconBriefcase className="h-5 w-5 shrink-0 text-muted-foreground" />
+        },
+        {
+          label: "Applicants",
+          href: "/?tab=applicants",
+          tab: "applicants",
+          icon: <IconUsers className="h-5 w-5 shrink-0 text-muted-foreground" />
+        },
+        {
+          label: "Vector Search",
+          href: "/?tab=search",
+          tab: "search",
+          icon: <IconSearch className="h-5 w-5 shrink-0 text-muted-foreground" />
+        },
+        {
+          label: "Compare",
+          href: "/?tab=compare",
+          tab: "compare",
+          icon: <IconScale className="h-5 w-5 shrink-0 text-muted-foreground" />
+        },
+        {
+          label: "Insights",
+          href: "/?tab=insights",
+          tab: "insights",
+          icon: (
+            <IconChartHistogram className="h-5 w-5 shrink-0 text-muted-foreground" />
+          )
+        }
+      ];
+    }
+    return [
+      {
+        label: "Dashboard",
+        href: "/",
+        icon: (
+          <IconLayoutDashboard className="h-5 w-5 shrink-0 text-muted-foreground" />
+        )
+      },
+      {
+        label: "Learning Hub",
+        href: "/learning",
+        icon: <IconSchool className="h-5 w-5 shrink-0 text-muted-foreground" />
+      }
+    ];
+  }, [isAdmin]);
+
+  return (
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      <Sidebar open={open} setOpen={setOpen}>
+        <SidebarBody className="justify-between gap-10">
+          <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            <BrandLogo open={open} />
+
+            <div className="mt-8 flex flex-col gap-1">
+              {navLinks.map((link) => {
+                let active;
+                if (link.tab) {
+                  active = location.pathname === "/" && currentTab === link.tab;
+                } else if (link.href === "/") {
+                  active = location.pathname === "/" && !location.search;
+                } else {
+                  active = location.pathname.startsWith(link.href);
+                }
+                return (
+                  <SidebarLink
+                    key={link.label}
+                    link={link}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(link.href);
+                    }}
+                    className={cn(
+                      "rounded-md px-2 transition-colors hover:bg-muted",
+                      active && "bg-muted font-medium"
+                    )}
+                  />
+                );
+              })}
+            </div>
+
+            {isAdmin ? (
+              <div className="mt-6 px-2">
+                <motion.span
+                  animate={{
+                    opacity: open ? 1 : 0,
+                    display: open ? "inline-flex" : "none"
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary"
+                >
+                  <IconShieldCheck className="h-3 w-3" /> Admin
+                </motion.span>
+              </div>
+            ) : null}
+          </div>
+        </SidebarBody>
+      </Sidebar>
+
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-14 shrink-0 items-center justify-end gap-2 border-b border-border/60 bg-background/80 px-4 backdrop-blur md:px-6">
+          <AnimatedThemeToggler />
+          <UserButton afterSignOutUrl="/" />
+        </header>
+        <div className="flex-1 overflow-y-auto">
+          <div className="min-h-full p-4 md:p-6">{children}</div>
+        </div>
+      </main>
     </div>
   );
 }
@@ -878,6 +1039,7 @@ function App() {
   const convexApps = useQuery(api.applications.listMyApplications, convexAuthed ? {} : "skip");
   const createJobMutation = useMutation(api.jobs.createJob);
   const applyToJobMutation = useMutation(api.applications.applyToJob);
+  const processApplicationAction = useAction(api.resume.processApplication);
 
   function authHeaders() {
     return {
@@ -968,22 +1130,28 @@ function App() {
       toast.error("Please upload a resume PDF first.");
       return;
     }
+    let applicationId = null;
     try {
-      const applicationId = await applyToJobMutation({
+      applicationId = await applyToJobMutation({
         jobIdRef: jobId,
         resumeFileName: "resume.pdf",
         resumeTextSnapshot: resumeText
       });
-      if (options.startNow && applicationId) {
-        setSelectedJobId("");
-        setResumeText("");
-        setResumeDetectedSkills([]);
-        setResumeStatus("Upload PDF to begin.");
-        window.location.href = `/assessment/${applicationId}`;
-        return;
-      }
     } catch (e) {
       toast.error(e.message || "Failed to apply");
+      return;
+    }
+    if (applicationId) {
+      processApplicationAction({ applicationIdRef: applicationId }).catch((err) => {
+        console.warn("processApplication failed:", err?.message || err);
+      });
+    }
+    if (options.startNow && applicationId) {
+      setSelectedJobId("");
+      setResumeText("");
+      setResumeDetectedSkills([]);
+      setResumeStatus("Upload PDF to begin.");
+      window.location.href = `/assessment/${applicationId}`;
       return;
     }
     setSelectedJobId("");
@@ -1042,7 +1210,7 @@ function App() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-4">
+    <main className="min-h-screen bg-background text-foreground">
       <Toaster richColors position="top-right" />
       <SignedOut>
         <div className="fixed inset-0 grid grid-cols-1 md:grid-cols-[60%_40%]">
@@ -1073,42 +1241,45 @@ function App() {
         </div>
       </SignedOut>
       <SignedIn>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <DashboardPage
-                email={email}
-                fullName={fullName}
-                isAdmin={isAdmin}
-                jobs={jobs}
-                applications={applications}
-                resumeStatus={resumeStatus}
-                resumeText={resumeText}
-                resumeDetectedSkills={resumeDetectedSkills}
-                adminJobForm={adminJobForm}
-                selectedJobId={selectedJobId}
-                setSelectedJobId={setSelectedJobId}
-                setAdminJobForm={setAdminJobForm}
-                handleResumeChange={handleResumeChange}
-                createJob={createJob}
-                applyToJob={applyToJob}
-              />
-            }
-          />
-          <Route
-            path="/assessment/:applicationId"
-            element={
-              <AssessmentPage
-                email={email}
-                fullName={fullName}
-                authHeaders={authHeaders}
-                refreshApplications={loadMyApplications}
-              />
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AppShell isAdmin={isAdmin}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <DashboardPage
+                  email={email}
+                  fullName={fullName}
+                  isAdmin={isAdmin}
+                  jobs={jobs}
+                  applications={applications}
+                  resumeStatus={resumeStatus}
+                  resumeText={resumeText}
+                  resumeDetectedSkills={resumeDetectedSkills}
+                  adminJobForm={adminJobForm}
+                  selectedJobId={selectedJobId}
+                  setSelectedJobId={setSelectedJobId}
+                  setAdminJobForm={setAdminJobForm}
+                  handleResumeChange={handleResumeChange}
+                  createJob={createJob}
+                  applyToJob={applyToJob}
+                />
+              }
+            />
+            <Route
+              path="/assessment/:applicationId"
+              element={
+                <AssessmentPage
+                  email={email}
+                  fullName={fullName}
+                  authHeaders={authHeaders}
+                  refreshApplications={loadMyApplications}
+                />
+              }
+            />
+            <Route path="/learning" element={<LearningPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppShell>
       </SignedIn>
     </main>
   );

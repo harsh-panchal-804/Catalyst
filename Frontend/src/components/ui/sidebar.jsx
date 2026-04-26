@@ -1,141 +1,150 @@
-"use client";
+"use client";;
+import { cn } from "@/lib/utils";
+import React, { useState, createContext, useContext } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { IconMenu2, IconX } from "@tabler/icons-react";
 
-import { createContext, useContext, useMemo, useState } from "react";
-import { cn } from "../../lib/utils";
+const SidebarContext = createContext(undefined);
 
-const SidebarContext = createContext(null);
-
-export function useSidebar() {
-  const ctx = useContext(SidebarContext);
-  if (!ctx) throw new Error("useSidebar must be used within SidebarProvider.");
-  return ctx;
-}
-
-export function SidebarProvider({
-  children,
-  defaultOpen = false,
-  open: controlledOpen,
-  onOpenChange,
-  hoverToExpand = true,
-  className,
-  ...props
-}) {
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
-  const [hovered, setHovered] = useState(false);
-
-  const isControlled = typeof controlledOpen === "boolean";
-  const open = isControlled ? controlledOpen : internalOpen;
-
-  function setOpen(next) {
-    if (!isControlled) setInternalOpen(next);
-    onOpenChange?.(next);
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error("useSidebar must be used within a SidebarProvider");
   }
+  return context;
+};
 
-  const expanded = open || (hoverToExpand && hovered);
+export const SidebarProvider = ({
+  children,
+  open: openProp,
+  setOpen: setOpenProp,
+  animate = true
+}) => {
+  const [openState, setOpenState] = useState(false);
 
-  const value = useMemo(
-    () => ({
-      open,
-      setOpen,
-      hovered,
-      setHovered,
-      expanded,
-      hoverToExpand
-    }),
-    [open, hovered, expanded, hoverToExpand]
-  );
+  const open = openProp !== undefined ? openProp : openState;
+  const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
 
   return (
-    <SidebarContext.Provider value={value}>
-      <div className={cn("flex w-full", className)} {...props}>
-        {children}
-      </div>
+    <SidebarContext.Provider value={{ open, setOpen, animate: animate }}>
+      {children}
     </SidebarContext.Provider>
   );
-}
+};
 
-export function Sidebar({ className, children, ...props }) {
-  const { expanded, hoverToExpand, setHovered } = useSidebar();
+export const Sidebar = ({
+  children,
+  open,
+  setOpen,
+  animate
+}) => {
   return (
-    <aside
-      data-state={expanded ? "expanded" : "collapsed"}
-      onMouseEnter={() => hoverToExpand && setHovered(true)}
-      onMouseLeave={() => hoverToExpand && setHovered(false)}
-      className={cn(
-        "hidden h-full shrink-0 border-r bg-background transition-[width] duration-200 ease-linear md:block",
-        expanded ? "w-64" : "w-14",
-        className
-      )}
-      {...props}
-    >
-      <div className="flex h-full w-full flex-col">{children}</div>
-    </aside>
-  );
-}
-
-export function SidebarBody({ className, ...props }) {
-  return <div className={cn("flex h-full w-full flex-col overflow-hidden", className)} {...props} />;
-}
-
-export function SidebarHeader({ className, ...props }) {
-  return <div className={cn("border-b p-2", className)} {...props} />;
-}
-
-export function SidebarContent({ className, ...props }) {
-  return <div className={cn("min-h-0 flex-1 overflow-auto", className)} {...props} />;
-}
-
-export function SidebarMenu({ className, ...props }) {
-  return <ul className={cn("flex flex-col gap-1", className)} {...props} />;
-}
-
-export function SidebarMenuItem({ className, ...props }) {
-  return <li className={cn("list-none", className)} {...props} />;
-}
-
-export function SidebarMenuButton({ isActive = false, className, children, ...props }) {
-  const { expanded } = useSidebar();
-  return (
-    <button
-      type="button"
-      data-active={isActive}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md p-2 text-left text-sm transition-colors hover:bg-muted",
-        isActive && "bg-muted font-medium",
-        !expanded && "justify-center [&>span:last-child]:hidden",
-        className
-      )}
-      {...props}
-    >
+    <SidebarProvider open={open} setOpen={setOpen} animate={animate}>
       {children}
-    </button>
+    </SidebarProvider>
   );
-}
+};
 
-export function SidebarLink({ link, isActive = false, className, ...props }) {
-  const { expanded } = useSidebar();
-  if (!link) return null;
-  const Comp = link.href ? "a" : "button";
+export const SidebarBody = (props) => {
   return (
-    <Comp
-      type={link.href ? undefined : "button"}
-      href={link.href}
-      onClick={link.onClick}
-      data-active={isActive}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-md p-2 text-sm transition-colors hover:bg-muted",
-        isActive && "bg-muted font-medium",
-        !expanded && "justify-center [&>span:last-child]:hidden",
-        className
-      )}
-      {...props}
-    >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center">{link.icon}</span>
-      <span>{link.label}</span>
-    </Comp>
+    <>
+      <DesktopSidebar {...props} />
+      <MobileSidebar {...(props)} />
+    </>
   );
-}
+};
 
-export function SidebarInset({ className, ...props }) {
-  return <main className={cn("min-w-0 flex-1", className)} {...props} />;
-}
+export const DesktopSidebar = ({
+  className,
+  children,
+  ...props
+}) => {
+  const { open, setOpen, animate } = useSidebar();
+  return (
+    <>
+      <motion.div
+        className={cn(
+          "h-full px-4 py-4 hidden  md:flex md:flex-col bg-muted/40 dark:bg-neutral-900 border-r border-border/60 w-[300px] shrink-0",
+          className
+        )}
+        animate={{
+          width: animate ? (open ? "300px" : "60px") : "300px",
+        }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        {...props}>
+        {children}
+      </motion.div>
+    </>
+  );
+};
+
+export const MobileSidebar = ({
+  className,
+  children,
+  ...props
+}) => {
+  const { open, setOpen } = useSidebar();
+  return (
+    <>
+      <div
+        className={cn(
+          "h-12 px-4 py-3 flex flex-row md:hidden items-center justify-between bg-background border-b border-border/60 w-full"
+        )}
+        {...props}>
+        <div className="flex justify-end z-20 w-full">
+          <IconMenu2
+            className="text-foreground cursor-pointer"
+            onClick={() => setOpen(!open)} />
+        </div>
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ x: "-100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "-100%", opacity: 0 }}
+              transition={{
+                duration: 0.3,
+                ease: "easeInOut",
+              }}
+              className={cn(
+                "fixed h-full w-full inset-0 bg-background p-10 z-[100] flex flex-col justify-between",
+                className
+              )}>
+              <div
+                className="absolute right-10 top-10 z-50 text-foreground cursor-pointer"
+                onClick={() => setOpen(!open)}>
+                <IconX />
+              </div>
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+};
+
+export const SidebarLink = ({
+  link,
+  className,
+  ...props
+}) => {
+  const { open, animate } = useSidebar();
+  return (
+    <a
+      href={link.href}
+      className={cn("flex items-center justify-start gap-2  group/sidebar py-2", className)}
+      {...props}>
+      {link.icon}
+      <motion.span
+        animate={{
+          display: animate ? (open ? "inline-block" : "none") : "inline-block",
+          opacity: animate ? (open ? 1 : 0) : 1,
+        }}
+        className="text-foreground text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0">
+        {link.label}
+      </motion.span>
+    </a>
+  );
+};

@@ -1,4 +1,4 @@
-import { QueryCtx, MutationCtx } from "./_generated/server";
+import { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 
 function getAdminEmails() {
   return (process.env.ADMIN_EMAILS || "")
@@ -7,7 +7,9 @@ function getAdminEmails() {
     .filter(Boolean);
 }
 
-export async function requireUser(ctx: QueryCtx | MutationCtx) {
+export type AnyAuthCtx = QueryCtx | MutationCtx | ActionCtx;
+
+export async function requireUser(ctx: AnyAuthCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new Error("Unauthorized");
@@ -24,10 +26,14 @@ export async function requireUser(ctx: QueryCtx | MutationCtx) {
   };
 }
 
-export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+export async function requireAdmin(ctx: AnyAuthCtx) {
   const user = await requireUser(ctx);
   if (user.role !== "admin") {
     throw new Error("Admin access required");
   }
   return user;
+}
+
+export function isAdminEmail(email: string) {
+  return getAdminEmails().includes((email || "").toLowerCase());
 }

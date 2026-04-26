@@ -12,7 +12,12 @@ import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
 import type * as assessments from "../assessments.js";
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as jobs from "../jobs.js";
+import type * as learning from "../learning.js";
+import type * as llm from "../llm.js";
+import type * as resume from "../resume.js";
+import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
 import type {
@@ -26,7 +31,12 @@ declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   assessments: typeof assessments;
   auth: typeof auth;
+  crons: typeof crons;
   jobs: typeof jobs;
+  learning: typeof learning;
+  llm: typeof llm;
+  resume: typeof resume;
+  seed: typeof seed;
   users: typeof users;
 }>;
 
