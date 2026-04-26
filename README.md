@@ -45,12 +45,12 @@ Set:
 - `CONVEX_URL` (for Convex deployment usage)
 - `CLERK_SECRET_KEY` (if server-side Clerk verification is later enforced)
 
-### Client `.env`
+### Frontend `.env`
 
-Create from `client/.env.example`:
+Create from `Frontend/.env.example`:
 
 ```bash
-cd client
+cd Frontend
 copy .env.example .env
 ```
 
@@ -71,7 +71,7 @@ npm install
 2. Install frontend dependencies:
 
 ```bash
-cd client
+cd Frontend
 npm install
 cd ..
 ```
@@ -85,7 +85,7 @@ npm start
 4. Run frontend:
 
 ```bash
-cd client
+cd Frontend
 npm run dev
 ```
 
@@ -137,7 +137,7 @@ Checklist:
 - Set backend `.env`:
   - `ADMIN_EMAILS=...`
   - `HUGGINGFACE_TOKEN=...` (used by Convex actions; add this in Convex env vars too)
-- Set client `client/.env`:
+- Set frontend `Frontend/.env`:
   - `VITE_CONVEX_URL=...` (from the Convex dashboard)
   - `VITE_USE_CONVEX_WITH_CLERK=true`
 
@@ -145,4 +145,4 @@ Once you create a job / apply / start assessment, the tables will populate and a
 
 ## Note about local JSON store
 
-Older prototype persistence lived in `data/app-store.json` via `src/store.js`. The current UI uses Convex for persistence.
+Older prototype persistence lived in `data/app-store.json` via `Backend/store.js`. The current UI uses Convex for persistence.

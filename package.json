@@ -2,10 +2,10 @@
   "name": "catalyst-skill-assessment-agent",
   "version": "1.0.0",
   "description": "AI-powered skill assessment and personalized learning plan agent prototype",
-  "main": "src/server.js",
+  "main": "Backend/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "start": "node Backend/server.js",
+    "dev": "node --watch Backend/server.js",
     "convex:dev": "npx convex dev",
     "convex:deploy": "npx convex deploy"
   },
