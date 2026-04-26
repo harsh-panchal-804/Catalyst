@@ -10,6 +10,22 @@ A full-stack platform that helps companies evaluate candidates beyond keyword ma
 
 ---
 
+## Try the Admin View
+
+There's a shared demo admin account so anyone can poke around the recruiter / RBAC side without setting up their own Clerk user.
+
+1. On the live demo, click **Sign in** → switch to **Sign up**.
+2. Email: `demo.admin+clerk_test@example.com`
+3. Password: anything you want (e.g. `DemoAdmin123!`).
+4. When Clerk asks for a verification code, enter **`424242`**.
+5. You'll land directly on the admin dashboard (Manage / Applicants / Insights / Search).
+
+> Why this works: the deployment runs on a Clerk **development** instance, which accepts any email of the form `*+clerk_test@example.com` with the fixed code `424242` and skips real email delivery ([Clerk docs](https://clerk.com/docs/testing/test-emails-and-phones)). The address is also listed in `ADMIN_EMAILS` / `VITE_ADMIN_EMAILS`, so the app's RBAC layer (`convex/auth.ts`) grants it the `admin` role on first sign-in.
+
+To explore the candidate flow instead, sign up with any other email (real or another `+clerk_test@example.com` variant) and you'll be routed to the candidate dashboard.
+
+---
+
 ## Deployment
 
 - Hosted on a personal **AWS EC2** instance
